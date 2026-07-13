@@ -16,7 +16,7 @@
  */
 (function (global) {
   // Zmień na adres produkcyjny backendu, gdy wdrożysz go poza localhost.
-  const API_URL = 'http://localhost:3000/api';
+  const API_URL = 'https://fiszki-v1aq.onrender.com/api';
 
   let accessToken = null;
 
