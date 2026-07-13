@@ -8,6 +8,18 @@ const itemsRoutes = require('./routes/items.routes');
 const wordsRoutes = require('./routes/words.routes');
 const aiRoutes = require('./routes/ai.routes');
 
+
+const path = require('path');
+
+// Serve static frontend files from the parent folder
+app.use(express.static(path.join(__dirname, '..')));
+
+// Explicit root route (belt-and-suspenders, express.static usually handles this too)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'index.html'));
+});
+
+
 const app = express();
 
 // Kolejność ma znaczenie: nagłówki bezpieczeństwa i CORS jako pierwsze,
@@ -36,7 +48,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: 'Wewnętrzny błąd serwera.' });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`Fiszki backend (secure) nasłuchuje na porcie ${PORT}`);
 });
