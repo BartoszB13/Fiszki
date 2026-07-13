@@ -16,12 +16,13 @@ const app = express();
 app.use(securityHeaders());
 app.use(corsPolicy());
 
-// Serve static frontend files from the parent folder
-app.use(express.static(path.join(__dirname, '..')));
-// Explicit root route (belt-and-suspenders, express.static usually handles this too)
+app.use(express.static(path.join(__dirname, '..', '..')));
+
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'index.html'));
+  res.sendFile(path.join(__dirname, '..', '..', 'index.html'));
 });
+
+
 app.use(cookieParser()); // wymagane, by czytać HttpOnly ciasteczko refresh tokenu
 app.use(express.json({ limit: '15mb' })); // limit podniesiony ze względu na obrazy base64 (/api/scan-ai)
 
