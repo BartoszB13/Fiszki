@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiszki - Autoryzacja</title>
+    <style>
+        :root {
+            --primary: #4A90E2; --success: #2ECC71; --danger: #E74C3C;
+            --dark: #333333; --light: #F5F7FA; --white: #FFFFFF; --border: #E1E8ED;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light); color: var(--dark);
+            margin: 0; padding: 20px; display: flex; justify-content: center;
+            align-items: center; min-height: 100vh; box-sizing: border-box;
+        }
+
+        .auth-container {
+            background-color: var(--white); border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1); padding: 40px 30px;
+            width: 100%; max-width: 400px; text-align: center; box-sizing: border-box;
+        }
+
+        .logo { font-size: 28px; font-weight: bold; color: var(--primary); text-decoration: none; display: block; margin-bottom: 10px; }
+        h2 { margin-top: 0; margin-bottom: 25px; font-size: 20px; color: #555; }
+
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: 600; }
+        .input-group input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; box-sizing: border-box; transition: 0.2s; }
+        .input-group input:focus { outline: none; border-color: var(--primary); }
+
+        .error-message { color: var(--danger); font-size: 13px; margin-top: 5px; display: none; text-align: left; font-weight: bold; }
+        .success-message { color: var(--success); font-size: 13px; margin-top: 5px; display: none; text-align: left; font-weight: bold; }
+
+        .btn { border: none; border-radius: 8px; padding: 14px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; color: white; transition: 0.2s; }
+        .btn-primary { background-color: var(--primary); }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+        .btn:disabled { background-color: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .switch-form { margin-top: 20px; font-size: 14px; color: #666; }
+        .switch-form a { color: var(--primary); text-decoration: none; font-weight: bold; cursor: pointer; }
+        .switch-form a:hover { text-decoration: underline; }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="auth-container">
+        <a href="index.html" class="logo">Fiszki.io</a>
+
+        <div id="login-section">
+            <h2>Witaj ponownie!</h2>
+            <form id="login-form">
+                <div class="input-group">
+                    <label for="login-username">Nazwa użytkownika lub E-mail</label>
+                    <input type="text" id="login-username" required autocomplete="username">
+                </div>
+                <div class="input-group">
+                    <label for="login-password">Hasło</label>
+                    <input type="password" id="login-password" required autocomplete="current-password">
+                </div>
+                <div id="login-error" class="error-message"></div>
+                <button type="submit" class="btn btn-primary" id="btn-login-submit">Zaloguj się</button>
+            </form>
+            <div class="switch-form">Nie masz jeszcze konta? <a onclick="toggleForms()">Zarejestruj się</a></div>
+        </div>
+
+        <div id="register-section" class="hidden">
+            <h2>Utwórz nowe konto</h2>
+            <form id="register-form">
+                <div class="input-group">
+                    <label for="reg-username">Nazwa użytkownika</label>
+                    <input type="text" id="reg-username" required minlength="3" autocomplete="username">
+                </div>
+                <div class="input-group">
+                    <label for="reg-email">Adres E-mail</label>
+                    <input type="email" id="reg-email" required autocomplete="email">
+                </div>
+                <div class="input-group">
+                    <label for="reg-password">Hasło</label>
+                    <input type="password" id="reg-password" required minlength="8" autocomplete="new-password">
+                </div>
+                <div class="input-group">
+                    <label for="reg-password-repeat">Powtórz hasło</label>
+                    <input type="password" id="reg-password-repeat" required minlength="8" autocomplete="new-password">
+                </div>
+                <div id="register-error" class="error-message"></div>
+                <div id="register-success" class="success-message">Konto utworzone! Możesz się zalogować.</div>
+                <button type="submit" class="btn btn-primary" id="btn-register-submit">Utwórz konto</button>
+            </form>
+            <div class="switch-form">Masz już konto? <a onclick="toggleForms()">Zaloguj się</a></div>
+        </div>
+    </div>
+
+    <script src="js/api-client.js"></script>
+    <script>
+        function toggleForms() {
+            document.getElementById('login-section').classList.toggle('hidden');
+            document.getElementById('register-section').classList.toggle('hidden');
+            document.querySelectorAll('input').forEach(input => input.value = '');
+            document.querySelectorAll('.error-message, .success-message').forEach(msg => msg.style.display = 'none');
+        }
+
+        const API_URL = FiszkiAPI.API_URL;
+
+        // --- REJESTRACJA ---
+        document.getElementById('register-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const errorMsg = document.getElementById('register-error');
+            const successMsg = document.getElementById('register-success');
+            const btn = document.getElementById('btn-register-submit');
+
+            const username = document.getElementById('reg-username').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const pass1 = document.getElementById('reg-password').value;
+            const pass2 = document.getElementById('reg-password-repeat').value;
+
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'none';
+
+            if (pass1 !== pass2) {
+                errorMsg.innerText = 'Hasła nie są identyczne!';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            btn.disabled = true;
+            try {
+                const res = await fetch(`${API_URL}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password: pass1 }),
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    successMsg.style.display = 'block';
+                    document.getElementById('register-form').reset();
+                    setTimeout(() => toggleForms(), 1500);
+                } else {
+                    errorMsg.innerText = data.message || 'Wystąpił błąd podczas rejestracji.';
+                    errorMsg.style.display = 'block';
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                errorMsg.innerText = 'Błąd połączenia z serwerem.';
+                errorMsg.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        // --- LOGOWANIE ---
+        document.getElementById('login-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const errorMsg = document.getElementById('login-error');
+            const btn = document.getElementById('btn-login-submit');
+            const loginInput = document.getElementById('login-username').value.trim();
+            const passwordInput = document.getElementById('login-password').value;
+
+            errorMsg.style.display = 'none';
+            btn.disabled = true;
+
+            try {
+                // credentials: 'include' -> przeglądarka zapisze HttpOnly ciasteczko
+                // z refresh tokenem, które backend ustawi w odpowiedzi (Set-Cookie).
+                const res = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: loginInput, password: passwordInput }),
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    // Username trzymamy w localStorage TYLKO do wyświetlenia w nagłówku
+                    // (np. "👤 Jan") — to nie jest sekret i nie służy do autoryzacji.
+                    // Sam accessToken NIE jest tu zapisywany nigdzie trwale: następna
+                    // strona i tak odświeży sesję z ciasteczka przy starcie.
+                    localStorage.setItem('currentUser', data.username);
+                    window.location.href = 'index.html';
+                } else {
+                    errorMsg.innerText = data.message || 'Nieprawidłowy login lub hasło.';
+                    errorMsg.style.display = 'block';
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                errorMsg.innerText = 'Błąd połączenia z serwerem.';
+                errorMsg.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

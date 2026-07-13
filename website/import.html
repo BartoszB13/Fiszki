@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiszki - Zarządzaj Słówkami</title>
+
+    <style>
+        :root {
+            --primary: #4A90E2; --primary-dark: #357ABD; --success: #2ECC71;
+            --danger: #E74C3C; --dark: #333333; --light: #F5F7FA;
+            --white: #FFFFFF; --border: #E1E8ED; --dark-blue: #1A365D;
+            --card-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--light); color: var(--dark); margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
+
+        header { background-color: var(--white); padding: 15px 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
+        .logo { font-size: 24px; font-weight: bold; color: var(--primary); text-decoration: none; }
+        .user-menu { font-weight: bold; color: var(--primary); }
+
+        main { padding: 30px; flex-grow: 1; max-width: 1200px; margin: 0 auto; width: 100%; }
+        .navigation-bar { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; font-size: 18px; font-weight: bold; color: var(--primary); }
+        .btn-back { background-color: var(--light); border: 2px solid var(--primary); color: var(--primary); border-radius: 8px; padding: 6px 12px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; text-decoration: none; }
+        .btn-back:hover { background-color: var(--primary); color: white; }
+
+        .workspace { display: flex; gap: 30px; align-items: flex-start; }
+        .left-panel { flex: 1; background: var(--white); padding: 25px; border-radius: 12px; box-shadow: var(--card-shadow); }
+        .right-panel { flex: 1; background: var(--white); padding: 25px; border-radius: 12px; box-shadow: var(--card-shadow); max-height: 75vh; display: flex; flex-direction: column; }
+
+        h2 { margin-top: 0; color: var(--primary); font-size: 20px; border-bottom: 2px solid var(--light); padding-bottom: 10px; }
+        .right-panel h2 { color: var(--dark); display: flex; justify-content: space-between; }
+
+        .photo-mock-zone {
+            border: 2px dashed #CBD5E1; background-color: #F8FAFC; border-radius: 10px; padding: 18px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; margin-bottom: 25px;
+        }
+        .photo-mock-zone:hover { border-color: var(--primary); background-color: #F1F5F9; }
+        .photo-mock-zone .badge-soon { background: #E2E8F0; color: #475569; font-size: 11px; padding: 3px 8px; border-radius: 12px; position: absolute; top: 10px; right: 10px; font-weight: bold; }
+
+        .divider { display: flex; align-items: center; text-align: center; margin: 20px 0; color: #94A3B8; font-size: 12px; font-weight: bold; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid var(--border); }
+        .divider:not(:empty)::before { margin-right: .5em; }
+        .divider:not(:empty)::after { margin-left: .5em; }
+
+        .lang-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 20px; background: var(--light); padding: 12px; border-radius: 8px;}
+        .lang-col { flex: 1; }
+        .lang-col label { font-size: 12px; font-weight: bold; color: #64748B; display: block; margin-bottom: 4px; }
+        .lang-col select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); font-weight: bold; font-size: 14px; outline: none;}
+
+        .btn-swap {
+            background: var(--white); border: 1px solid var(--border); color: var(--primary);
+            border-radius: 50%; width: 38px; height: 38px; font-size: 18px; font-weight: bold;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s ease; margin-bottom: 1px; flex-shrink: 0;
+        }
+        .btn-swap:hover { background: var(--primary); color: white; transform: rotate(180deg); }
+
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 8px; font-size: 14px; }
+        .form-group input { width: 100%; padding: 14px; border: 2px solid var(--border); border-radius: 8px; font-size: 16px; outline: none; transition: 0.2s; }
+        .form-group input:focus { border-color: var(--primary); }
+        .char-counter { font-size: 12px; color: #94A3B8; text-align: right; margin-top: 4px; }
+
+        .btn-submit { background-color: var(--success); color: white; border: none; border-radius: 8px; padding: 14px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; }
+        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3); }
+        .btn-submit:disabled { background-color: #95a5a6; cursor: wait; transform: none; box-shadow: none; }
+
+        .word-count { font-size: 14px; color: #777; font-weight: normal; background: var(--light); padding: 4px 10px; border-radius: 20px; }
+        .words-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+        .word-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-bottom: 1px solid var(--light); transition: 0.2s; }
+        .word-item:hover { background-color: var(--light); }
+        .word-base { font-weight: bold; color: var(--dark); font-size: 16px; }
+        .word-translation { color: var(--primary); font-size: 15px; }
+        .btn-remove-word { background: none; border: none; color: var(--danger); cursor: pointer; font-weight: bold; font-size: 18px; padding: 5px; opacity: 0.5; transition: 0.2s; }
+        .word-item:hover .btn-remove-word { opacity: 1; }
+
+        footer { background-color: var(--dark-blue); color: rgba(255, 255, 255, 0.8); text-align: center; padding: 20px; font-size: 14px; margin-top: auto; }
+
+        @media (max-width: 768px) {
+            .workspace { flex-direction: column; }
+            .left-panel, .right-panel { width: 100%; max-height: none; }
+            header, main { padding: 15px; }
+            .btn-remove-word { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="index.html" class="logo">Fiszki.io</a>
+        <div class="user-menu">👤 <span id="display-username">User</span></div>
+    </header>
+
+    <main>
+        <div class="navigation-bar">
+            <a href="Tworzenie.html" class="btn-back">⬅ Wróć do folderów</a>
+            <span>Edycja Talii</span>
+        </div>
+
+        <div class="workspace">
+
+            <div class="left-panel">
+
+                <input type="file" id="image-upload" accept="image/*" style="display: none;">
+                <div class="photo-mock-zone" id="btn-scan-photo">
+                    <div style="font-size: 28px; margin-bottom: 5px;">📷</div>
+                    <strong style="display: block; font-size: 15px; color: var(--dark);" id="scan-label">Skanuj ze zdjęcia (AI)</strong>
+                    <span style="font-size: 13px; color: #64748B;">Automatycznie wyodrębnia słówka, <br>Narazie tylko J.Angielski</br></span>
+                </div>
+
+                <div class="divider">SZYBKIE DODAWANIE</div>
+
+                <div class="lang-row">
+                    <div class="lang-col">
+                        <label>Wpisuję w:</label>
+                        <select id="source-lang">
+                            <option value="pl" selected>Polski (pl)</option>
+                            <option value="en">Angielski (en)</option>
+                            <option value="de">Niemiecki (de)</option>
+                            <option value="es">Hiszpański (es)</option>
+                        </select>
+                    </div>
+
+                    <button type="button" class="btn-swap" id="btn-swap-langs" title="Odwróć języki">⇄</button>
+
+                    <div class="lang-col">
+                        <label>Tłumacz na:</label>
+                        <select id="target-lang">
+                            <option value="en" selected>Angielski (en)</option>
+                            <option value="pl">Polski (pl)</option>
+                            <option value="de">Niemiecki (de)</option>
+                            <option value="es">Hiszpański (es)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <form id="add-word-form">
+                    <div class="form-group">
+                        <label>Słówko</label>
+                        <input type="text" id="input-base" placeholder="Wpisz słowo i naciśnij Enter..." required autocomplete="off" maxlength="50">
+                        <div class="char-counter"><span id="base-counter">0</span>/50</div>
+                    </div>
+
+                    <button type="submit" class="btn-submit" id="btn-submit">➕ Przetłumacz i dodaj</button>
+                </form>
+
+                <button type="button" class="btn-submit" style="background-color: var(--primary); margin-top: 15px;" id="btn-start-learning">
+                    🎓 Zacznij naukę
+                </button>
+            </div>
+
+            <div class="right-panel">
+                <h2>Lista słówek <span class="word-count" id="word-counter">0</span></h2>
+                <ul class="words-list" id="words-list"></ul>
+            </div>
+
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Fiszki.io. Wszelkie prawa zastrzeżone.</p>
+    </footer>
+
+    <script src="js/api-client.js"></script>
+    <script>
+        let wordsList = [];
+        const urlParams = new URLSearchParams(window.location.search);
+        const deckId = urlParams.get('deckId');
+
+        const wordsListContainer = document.getElementById('words-list');
+        const wordCounter = document.getElementById('word-counter');
+        const inputBase = document.getElementById('input-base');
+        const btnSubmit = document.getElementById('btn-submit');
+        const srcSelect = document.getElementById('source-lang');
+        const tgtSelect = document.getElementById('target-lang');
+
+        // Limit 50 znaków egzekwowany też po stronie backendu (400, jeśli
+        // przekroczony) — to tylko wygoda UX, żeby user zobaczył to od razu.
+        inputBase.addEventListener('input', () => {
+            document.getElementById('base-counter').innerText = inputBase.value.length;
+        });
+
+        // --- ZAPIS SŁÓWKA DO BAZY ---
+        async function saveWordToDatabase(baseWord, translatedWord) {
+            if (!deckId) {
+                console.error('Błąd: Brak deckId w adresie URL.');
+                alert('Ostrzeżenie: Brak ID talii w pasku adresu (np. ?deckId=1).');
+                return;
+            }
+
+            try {
+                const response = await FiszkiAPI.apiFetch('/words/add', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        deck_id: parseInt(deckId, 10),
+                        base_word: baseWord,
+                        translation: translatedWord,
+                    }),
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    wordsList.push({ id: data.id, base: baseWord, translation: translatedWord });
+                    renderWords();
+                } else {
+                    // Np. 400 z komunikatem o przekroczonym limicie znaków, albo
+                    // 429 z rate-limitera przy zbyt szybkim dodawaniu.
+                    alert('Błąd zapisu: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Błąd połączenia z serwerem bazodanowym:', error);
+            }
+        }
+
+        // --- POBIERANIE SŁÓWEK Z BAZY ---
+        async function fetchWordsFromDatabase() {
+            if (!deckId) return;
+
+            try {
+                const response = await FiszkiAPI.apiFetch('/words/get', {
+                    method: 'POST',
+                    body: JSON.stringify({ deckId: parseInt(deckId, 10) }),
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    wordsList = data.words;
+                    renderWords();
+                } else {
+                    console.error('Błąd pobierania bazy:', data.message);
+                }
+            } catch (error) {
+                console.error('Błąd połączenia z serwerem pobierania:', error);
+            }
+        }
+
+        // Renderowanie przez createElement/textContent — NIE innerHTML.
+        // word.base/word.translation to treść wpisana przez użytkownika (lub
+        // zwrócona przez AI); backend je sanityzuje przed zapisem, ale tu
+        // dodatkowo unikamy jakiejkolwiek interpretacji jako HTML (defense in depth).
+        function renderWords() {
+            wordsListContainer.innerHTML = '';
+            wordsList.forEach((word) => {
+                const li = document.createElement('li');
+                li.className = 'word-item';
+
+                const textWrap = document.createElement('div');
+                const base = document.createElement('div');
+                base.className = 'word-base';
+                base.textContent = word.base;
+                const translation = document.createElement('div');
+                translation.className = 'word-translation';
+                translation.textContent = word.translation;
+                textWrap.append(base, translation);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'btn-remove-word';
+                removeBtn.type = 'button';
+                removeBtn.innerText = '✖';
+                removeBtn.addEventListener('click', () => removeWord(word.id));
+
+                li.append(textWrap, removeBtn);
+                wordsListContainer.appendChild(li);
+            });
+            wordCounter.innerText = wordsList.length;
+        }
+
+        // Zapobieganie dublowaniu (POL-POL) oraz zamianka
+        let lastSrc = srcSelect.value;
+        let lastTgt = tgtSelect.value;
+
+        srcSelect.addEventListener('change', () => {
+            if (srcSelect.value === tgtSelect.value) tgtSelect.value = lastSrc;
+            lastSrc = srcSelect.value;
+            lastTgt = tgtSelect.value;
+        });
+
+        tgtSelect.addEventListener('change', () => {
+            if (tgtSelect.value === srcSelect.value) srcSelect.value = lastTgt;
+            lastSrc = srcSelect.value;
+            lastTgt = tgtSelect.value;
+        });
+
+        document.getElementById('btn-swap-langs').addEventListener('click', () => {
+            const temp = srcSelect.value;
+            srcSelect.value = tgtSelect.value;
+            tgtSelect.value = temp;
+            lastSrc = srcSelect.value;
+            lastTgt = tgtSelect.value;
+        });
+
+        document.getElementById('add-word-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const query = inputBase.value.trim();
+            if (!query) return;
+
+            const langPair = `${srcSelect.value}|${tgtSelect.value}`;
+
+            btnSubmit.disabled = true;
+            btnSubmit.innerText = '⏳ Tłumaczę...';
+
+            try {
+                const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(query)}&langpair=${langPair}`);
+                const data = await res.json();
+
+                let translatedText = query;
+                if (data && data.responseData && data.responseData.translatedText) {
+                    translatedText = data.responseData.translatedText;
+                }
+
+                await saveWordToDatabase(query, translatedText.toLowerCase());
+
+                inputBase.value = '';
+                document.getElementById('base-counter').innerText = '0';
+                inputBase.focus();
+            } catch (err) {
+                alert('Błąd połączenia z tłumaczem MyMemory.');
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.innerText = '➕ Przetłumacz i dodaj';
+            }
+        });
+
+        async function removeWord(id) {
+            if (!confirm('Czy na pewno chcesz bezpowrotnie usunąć to słówko?')) return;
+
+            try {
+                const response = await FiszkiAPI.apiFetch('/words/delete', {
+                    method: 'POST',
+                    body: JSON.stringify({ wordId: id }),
+                });
+                const data = await response.json();
+                if (data.success) {
+                    wordsList = wordsList.filter((w) => w.id !== id);
+                    renderWords();
+                } else {
+                    alert('Błąd bazy danych: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Błąd połączenia:', error);
+                alert('Nie udało się połączyć z serwerem, aby usunąć słówko.');
+            }
+        }
+
+        // --- SKANOWANIE ZDJĘĆ PRZEZ GEMINI ---
+        const btnScanPhoto = document.getElementById('btn-scan-photo');
+        const imageUpload = document.getElementById('image-upload');
+        const scanLabel = document.getElementById('scan-label');
+
+        btnScanPhoto.addEventListener('click', () => imageUpload.click());
+
+        imageUpload.addEventListener('change', function () {
+            const file = this.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function (e) {
+                const base64Image = e.target.result;
+
+                scanLabel.innerText = '⏳ Skanowanie przez AI (to może potrwać)...';
+                btnScanPhoto.style.pointerEvents = 'none';
+                btnScanPhoto.style.opacity = '0.7';
+
+                try {
+                    const response = await FiszkiAPI.apiFetch('/scan-ai', {
+                        method: 'POST',
+                        body: JSON.stringify({ image: base64Image }),
+                    });
+                    const result = await response.json();
+
+                    if (result.success && result.words && Array.isArray(result.words)) {
+                        alert(`Znalazłem ${result.words.length} słówek! Rozpoczynam dodawanie do bazy...`);
+
+                        for (const word of result.words) {
+                            if (word.base && word.translation) {
+                                await saveWordToDatabase(word.base.trim(), word.translation.trim());
+                            }
+                        }
+
+                        alert('Gotowe! Wszystkie zeskanowane słówka zostały zapisane.');
+                    } else {
+                        alert('Błąd skanowania: ' + (result.message || 'Model nie zwrócił poprawnych danych.'));
+                        console.error('Szczegóły błędu:', result);
+                    }
+                } catch (error) {
+                    console.error('Błąd sieci:', error);
+                    alert('Wystąpił problem z połączeniem z serwerem.');
+                } finally {
+                    scanLabel.innerText = 'Skanuj ze zdjęcia (AI)';
+                    btnScanPhoto.style.pointerEvents = 'auto';
+                    btnScanPhoto.style.opacity = '1';
+                    imageUpload.value = '';
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('btn-start-learning').addEventListener('click', () => {
+            window.location.href = 'nauka.html' + window.location.search;
+        });
+
+        (async function init() {
+            const authed = await FiszkiAPI.requireAuth();
+            if (!authed) return;
+
+            document.getElementById('display-username').innerText = localStorage.getItem('currentUser') || 'User';
+
+            if (!deckId) {
+                alert('Błąd: Brak ID talii w adresie URL!');
+                window.location.href = 'Tworzenie.html';
+                return;
+            }
+
+            fetchWordsFromDatabase();
+        })();
+    </script>
+</body>
+</html>

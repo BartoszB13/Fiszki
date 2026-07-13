@@ -1,0 +1,86 @@
+// Schemat bazy danych Fiszki.io - projekt od zera pod PostgreSQL + Prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ItemType {
+  folder
+  deck
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Licznik nieudanych logowań + blokada czasowa - dodatkowa warstwa
+  // ochrony przed brute force ponad rate-limiterem (przetrwa restart serwera/wiele IP).
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+
+  items         Item[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+// Refresh tokeny przechowywane jako HASH (nigdy plaintext) - jeśli baza wycieknie,
+// atakujący nie odzyska działających tokenów. Rotacja: każde użycie unieważnia
+// stary token i tworzy nowy, powiązany przez replacedByTokenHash - to pozwala
+// wykryć próbę ponownego użycia skradzionego/starego tokenu (token reuse detection).
+model RefreshToken {
+  id                  String    @id @default(uuid())
+  tokenHash           String    @unique @map("token_hash")
+  userId              Int       @map("user_id")
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt           DateTime  @map("expires_at")
+  revoked             Boolean   @default(false)
+  replacedByTokenHash String?   @map("replaced_by_token_hash")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  createdByIp         String?   @map("created_by_ip")
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Item {
+  id        Int      @id @default(autoincrement())
+  type      ItemType
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  userId Int  @map("user_id")
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Struktura drzewiasta: parentId = NULL => element w katalogu głównym
+  parentId Int?  @map("parent_id")
+  parent   Item? @relation("ItemChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children Item[] @relation("ItemChildren")
+
+  // Talia (type = deck) posiada słówka
+  words Word[]
+
+  @@index([userId, parentId])
+  @@map("items")
+}
+
+model Word {
+  id          Int      @id @default(autoincrement())
+  baseWord    String   @map("base_word")
+  translation String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  deckId Int  @map("deck_id")
+  deck   Item @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  @@index([deckId])
+  @@map("words")
+}
