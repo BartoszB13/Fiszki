@@ -18,7 +18,7 @@ function securityHeaders() {
         scriptSrcAttr: ["'none'"], // keep blocking inline event handlers
         styleSrc: ["'self'", "'unsafe-inline'"], // adjust if you have external stylesheets only
         imgSrc: ["'self'", "data:"], // 'data:' needed if you display base64 images (e.g. OCR upload preview)
-        connectSrc: ["'self'"],
+        connectSrc: ["'self'","https://api.mymemory.translated.net"],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         frameAncestors: ["'none'"], // dodatkowa ochrona anty-clickjacking
