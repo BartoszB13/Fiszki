@@ -13,7 +13,14 @@ function securityHeaders() {
     // gdyby jakaś odpowiedź JSON została błędnie zinterpretowana jako HTML.
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'none'"],
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        scriptSrcAttr: ["'none'"], // keep blocking inline event handlers
+        styleSrc: ["'self'", "'unsafe-inline'"], // adjust if you have external stylesheets only
+        imgSrc: ["'self'", "data:"], // 'data:' needed if you display base64 images (e.g. OCR upload preview)
+        connectSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
         frameAncestors: ["'none'"], // dodatkowa ochrona anty-clickjacking
       },
     },
