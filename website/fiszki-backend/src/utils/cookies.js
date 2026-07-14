@@ -25,10 +25,9 @@ function setRefreshCookie(res, rawToken) {
   res.cookie(REFRESH_COOKIE_NAME, rawToken, refreshCookieOptions());
 }
 
-console.log('Refresh cookie set for user:', user.id);
-
 function clearRefreshCookie(res) {
   res.clearCookie(REFRESH_COOKIE_NAME, { ...refreshCookieOptions(), maxAge: 0 });
 }
 
 module.exports = { REFRESH_COOKIE_NAME, setRefreshCookie, clearRefreshCookie };
+console.log('Refresh cookie set for user:', user.id);
