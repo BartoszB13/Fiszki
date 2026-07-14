@@ -30,4 +30,3 @@ function clearRefreshCookie(res) {
 }
 
 module.exports = { REFRESH_COOKIE_NAME, setRefreshCookie, clearRefreshCookie };
-console.log('Refresh cookie set for user:', user.id);
