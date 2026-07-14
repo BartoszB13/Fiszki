@@ -40,7 +40,7 @@ const refreshLimiter = rateLimit({
  */
 const createFlashcardLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minuta
-  max: 60,
+  max: 150,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => `flashcard-create:${req.user?.id ?? req.ip}`,
