@@ -92,11 +92,11 @@ async function deleteItem(itemId, itemName) {
 // stringów (i tym samym uniknąć wektora XSS na tym widoku).
 function renderGrid() {
     const grid = document.getElementById('dashboard-grid');
-    grid.innerHTML = ''; 
+    grid.innerHTML = '';
 
     userItems.forEach(item => {
         const itemDiv = document.createElement('div');
-        
+
         if (item.type === 'folder') {
             itemDiv.className = 'grid-item item-folder';
             itemDiv.onclick = () => enterFolder(item.id, item.name);
@@ -139,8 +139,11 @@ function renderGrid() {
     });
     document.addEventListener('click', () => createMenu.classList.remove('show'));
 
-    document.getElementById('btn-new-folder').addEventListener('click', () => addNewItem('folder'));
-    document.getElementById('btn-new-deck').addEventListener('click', () => addNewItem('deck'));
+    // Uwaga: "Nowy Folder" / "Talia Fiszek" w #create-menu NIE mają już
+    // id="btn-new-folder" / id="btn-new-deck" — używają data-action
+    // i są obsługiwane przez delegowany listener na #create-menu poniżej.
+    // (Wcześniej były tu dwie linie getElementById('btn-new-folder'/'btn-new-deck')
+    // które zwracały null i rzucały TypeError, przerywając resztę init().)
 
     document.getElementById('btn-go-back').addEventListener('click', () => {
         const previous = folderHistory.pop();
@@ -152,18 +155,19 @@ function renderGrid() {
         }
     });
 
-    fetchItemsFromDB();
-document.getElementById('create-menu').addEventListener('click', (e) => {
-    if (e.target.tagName === 'BUTTON' && e.target.dataset.action) {
-        addNewItem(e.target.dataset.action);
-    }
-});
+    document.getElementById('create-menu').addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON' && e.target.dataset.action) {
+            addNewItem(e.target.dataset.action);
+        }
+    });
 
-document.getElementById('dashboard-grid').addEventListener('click', (e) => {
-    if (e.target.classList.contains('delete-btn')) {
-        const id = Number(e.target.dataset.id);
-        const name = e.target.dataset.name;
-        deleteItem(e, id, name);
-    }
-});
+    document.getElementById('dashboard-grid').addEventListener('click', (e) => {
+        if (e.target.classList.contains('delete-btn')) {
+            const id = Number(e.target.dataset.id);
+            const name = e.target.dataset.name;
+            deleteItem(id, name);
+        }
+    });
+
+    fetchItemsFromDB();
 })();
