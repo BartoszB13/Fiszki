@@ -2,6 +2,7 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Fiszki - Nauka Słówek</title>
     <style>
         :root {
@@ -16,6 +17,8 @@
             --red-text: #FF3B30;
             --pleasant-purple: #5856D6;
         }
+
+        * { box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -32,19 +35,19 @@
 
         .container {
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             padding: 20px;
             box-sizing: border-box;
             text-align: center;
         }
 
         h1, h2 { font-weight: 600; margin-bottom: 8px; }
-        p { color: var(--text-muted); font-size: 15px; margin-top: 0; }
+        p { color: var(--text-muted); font-size: 0.9375rem; margin-top: 0; }
 
         button { touch-action: manipulation; font-family: inherit; }
 
         .btn {
-            border: none; border-radius: 14px; padding: 16px; font-size: 17px;
+            border: none; border-radius: 14px; padding: 16px; font-size: 1.0625rem;
             font-weight: 600; cursor: pointer; width: 100%; transition: opacity 0.2s;
         }
         .btn:active { opacity: 0.7; }
@@ -53,42 +56,72 @@
 
         .btn-text-only {
             background: transparent; color: var(--text-muted); border: none;
-            padding: 12px; font-size: 15px; margin-top: 10px; cursor: pointer; width: 100%;
+            padding: 12px; font-size: 0.9375rem; margin-top: 10px; cursor: pointer; width: 100%;
         }
 
         .flashcard {
             background-color: var(--card-bg); border-radius: 20px;
             box-shadow: 0 4px 24px rgba(0,0,0,0.04);
-            padding: 50px 20px; margin: 20px 0; min-height: 180px;
+            padding: 40px 20px; margin: 20px 0; min-height: 160px;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
 
-        .word-eng { font-size: 32px; font-weight: 700; color: var(--text-main); margin-bottom: 5px; }
-        .word-pol { font-size: 22px; font-weight: 500; color: var(--text-muted); display: none; margin-top: 15px; animation: fadeIn 0.3s ease; }
+        .word-eng { font-size: 2rem; font-weight: 700; color: var(--text-main); margin-bottom: 5px; word-break: break-word; }
+        .word-pol { font-size: 1.375rem; font-weight: 500; color: var(--text-muted); display: none; margin-top: 15px; animation: fadeIn 0.3s ease; word-break: break-word; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
-        .counter { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .counter { font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
         .hidden { display: none !important; }
 
         .btn-slim {
             background: transparent; border: 1px solid rgba(0, 122, 255, 0.3); color: var(--blue);
-            border-radius: 20px; padding: 8px 16px; font-size: 14px; font-weight: 500; margin-top: 20px; cursor: pointer;
+            border-radius: 20px; padding: 8px 16px; font-size: 0.875rem; font-weight: 500; margin-top: 20px; cursor: pointer;
         }
 
         .eval-container { display: flex; gap: 12px; width: 100%; margin-top: 10px; }
         .btn-yes { background-color: darkgreen; color: green; flex: 1; }
         .btn-no { background-color: darkred; color: red; flex: 1; }
 
-        .stats-box { display: flex; justify-content: space-between; background: var(--card-bg); padding: 20px; border-radius: 16px; margin: 20px 0; box-shadow: 0 2px 12px rgba(0,0,0,0.03); }
-        .stat-item { display: flex; flex-direction: column; font-size: 13px; color: var(--text-muted); }
-        .stat-value { font-size: 28px; font-weight: 700; margin-top: 4px; color: var(--text-main); }
+        .stats-box { display: flex; justify-content: space-between; background: var(--card-bg); padding: 20px; border-radius: 16px; margin: 20px 0; box-shadow: 0 2px 12px rgba(0,0,0,0.03); gap: 10px; }
+        .stat-item { display: flex; flex-direction: column; font-size: 0.8125rem; color: var(--text-muted); flex: 1; }
+        .stat-value { font-size: 1.75rem; font-weight: 700; margin-top: 4px; color: var(--text-main); }
 
         .mistakes-list { text-align: left; background: var(--card-bg); padding: 20px; border-radius: 16px; max-height: 250px; overflow-y: auto; margin-top: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.03); }
         .mistakes-list ul { padding-left: 0; list-style: none; margin: 0; }
-        .mistakes-list li { padding: 10px 0; border-bottom: 1px solid #F2F2F7; font-size: 15px; }
+        .mistakes-list li { padding: 10px 0; border-bottom: 1px solid #F2F2F7; font-size: 0.9375rem; word-break: break-word; }
         .mistakes-list li:last-child { border-bottom: none; }
         .mistakes-list strong { color: var(--red-text); display: block; margin-bottom: 2px; }
+
+        /* ===== Desktop / duże ekrany: trochę więcej "oddechu" wokół karty ===== */
+        @media (min-width: 769px) {
+            .container { max-width: 440px; }
+            .flashcard { padding: 60px 30px; min-height: 200px; }
+        }
+
+        /* ===== Smartfony (iPhone 11 / 15 / 15 Pro i mniejsze, do 480px) ===== */
+        @media (max-width: 480px) {
+            .container { padding: 14px; max-width: 100%; }
+            .flashcard { padding: 32px 16px; min-height: 140px; margin: 14px 0; }
+            .word-eng { font-size: 1.6rem; }
+            .word-pol { font-size: 1.15rem; }
+            .btn { padding: 14px; font-size: 1rem; }
+            .stats-box { padding: 14px; }
+            .stat-value { font-size: 1.5rem; }
+        }
+
+        /* ===== Bardzo małe / wąskie ekrany (np. iPhone SE, 375px i mniej) ===== */
+        @media (max-width: 375px) {
+            .word-eng { font-size: 1.4rem; }
+            .flashcard { padding: 26px 12px; }
+        }
+
+        /* ===== Telefon w orientacji poziomej - niska wysokość ===== */
+        @media (max-height: 480px) and (max-width: 900px) {
+            body { align-items: flex-start; }
+            .container { padding-top: 12px; padding-bottom: 12px; }
+            .flashcard { min-height: 110px; padding: 20px 16px; margin: 10px 0; }
+        }
     </style>
 </head>
 <body>
@@ -97,7 +130,8 @@
 
     <div id="loading-screen">
         <p id="loading-text" style="font-size: 15px; margin-top: 50px;">Pobieranie fiszek...</p>
-        <button id="btn-back-empty" class="btn-text-only hidden" style="margin-top: 20px;">Powrót do edycji</button>    </div>
+        <button id="btn-back-empty" class="btn-text-only hidden" style="margin-top: 20px;">Powrót do edycji</button>
+    </div>
 
     <div id="flashcard-screen" class="hidden">
         <div class="counter" id="card-counter">1 / 100</div>
@@ -113,7 +147,7 @@
                 <button class="btn btn-no" id="btn-eval-no">Nie (N)</button>
                 <button class="btn btn-yes" id="btn-eval-yes">Tak (T)</button>
             </div>
-    
+
             <div style="display: flex; gap: 10px; margin-top: 10px;">
                 <button class="btn-text-only" id="btn-end-session">Zakończ sesję</button>
                 <button class="btn-text-only" id="btn-back-to-deck-1">Powrót do edycji</button>
@@ -147,9 +181,7 @@
 </div>
 
 <script src="js/api-client.js"></script>
-<script src="js/nauka.js">
-    
-</script>
+<script src="js/nauka.js"></script>
 
 </body>
 </html>

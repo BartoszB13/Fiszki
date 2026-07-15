@@ -2,6 +2,7 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://fiszki-v1aq.onrender.com; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
     <title>Fiszki - Autoryzacja</title>
     <style>
@@ -9,6 +10,8 @@
             --primary: #4A90E2; --success: #2ECC71; --danger: #E74C3C;
             --dark: #333333; --light: #F5F7FA; --white: #FFFFFF; --border: #E1E8ED;
         }
+
+        * { box-sizing: border-box; }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -23,27 +26,53 @@
             width: 100%; max-width: 400px; text-align: center; box-sizing: border-box;
         }
 
-        .logo { font-size: 28px; font-weight: bold; color: var(--primary); text-decoration: none; display: block; margin-bottom: 10px; }
-        h2 { margin-top: 0; margin-bottom: 25px; font-size: 20px; color: #555; }
+        .logo { font-size: 1.75rem; font-weight: bold; color: var(--primary); text-decoration: none; display: block; margin-bottom: 10px; }
+        h2 { margin-top: 0; margin-bottom: 25px; font-size: 1.25rem; color: #555; }
 
         .input-group { margin-bottom: 15px; text-align: left; }
-        .input-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: 600; }
+        .input-group label { display: block; margin-bottom: 5px; font-size: 0.875rem; font-weight: 600; }
+        /* font-size min. 16px na inputach - zapobiega auto-zoomowi Safari na iOS */
         .input-group input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; box-sizing: border-box; transition: 0.2s; }
         .input-group input:focus { outline: none; border-color: var(--primary); }
 
-        .error-message { color: var(--danger); font-size: 13px; margin-top: 5px; display: none; text-align: left; font-weight: bold; }
-        .success-message { color: var(--success); font-size: 13px; margin-top: 5px; display: none; text-align: left; font-weight: bold; }
+        .error-message { color: var(--danger); font-size: 0.8125rem; margin-top: 5px; display: none; text-align: left; font-weight: bold; }
+        .success-message { color: var(--success); font-size: 0.8125rem; margin-top: 5px; display: none; text-align: left; font-weight: bold; }
 
-        .btn { border: none; border-radius: 8px; padding: 14px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; color: white; transition: 0.2s; }
+        .btn { border: none; border-radius: 8px; padding: 14px; font-size: 1rem; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; color: white; transition: 0.2s; touch-action: manipulation; }
         .btn-primary { background-color: var(--primary); }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
         .btn:disabled { background-color: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
 
-        .switch-form { margin-top: 20px; font-size: 14px; color: #666; }
+        .switch-form { margin-top: 20px; font-size: 0.875rem; color: #666; }
         .switch-form a { color: var(--primary); text-decoration: none; font-weight: bold; cursor: pointer; }
         .switch-form a:hover { text-decoration: underline; }
 
         .hidden { display: none !important; }
+
+        /* ===== Smartfony (iPhone 11 / 15 / 15 Pro i podobne, do 480px) ===== */
+        @media (max-width: 480px) {
+            body { padding: 12px; align-items: flex-start; padding-top: 40px; }
+            .auth-container { padding: 28px 20px; border-radius: 10px; box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
+            .logo { font-size: 1.5rem; margin-bottom: 8px; }
+            h2 { font-size: 1.1rem; margin-bottom: 20px; }
+            .input-group { margin-bottom: 12px; }
+            .btn { padding: 13px; font-size: 0.95rem; }
+        }
+
+        /* ===== Tablety (do 768px) ===== */
+        @media (min-width: 481px) and (max-width: 768px) {
+            .auth-container { max-width: 420px; padding: 36px 28px; }
+        }
+
+        /* ===== Małe laptopy (do 1024px) - lekkie doprecyzowanie odstępów ===== */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .auth-container { max-width: 400px; }
+        }
+
+        /* Bardzo niskie ekrany (np. telefon w poziomie) - unikamy ucinania formularza */
+        @media (max-height: 480px) and (max-width: 900px) {
+            body { align-items: flex-start; padding-top: 20px; padding-bottom: 20px; }
+        }
     </style>
 </head>
 <body>
@@ -65,7 +94,8 @@
                 <div id="login-error" class="error-message"></div>
                 <button type="submit" class="btn btn-primary" id="btn-login-submit">Zaloguj się</button>
             </form>
-            <div class="switch-form">Nie masz jeszcze konta? <a id="show-register-link">Zarejestruj się</a></div>        </div>
+            <div class="switch-form">Nie masz jeszcze konta? <a id="show-register-link">Zarejestruj się</a></div>
+        </div>
 
         <div id="register-section" class="hidden">
             <h2>Utwórz nowe konto</h2>
@@ -90,7 +120,8 @@
                 <div id="register-success" class="success-message">Konto utworzone! Możesz się zalogować.</div>
                 <button type="submit" class="btn btn-primary" id="btn-register-submit">Utwórz konto</button>
             </form>
-            <div class="switch-form">Masz już konto? <a id="show-login-link">Zaloguj się</a></div>        </div>
+            <div class="switch-form">Masz już konto? <a id="show-login-link">Zaloguj się</a></div>
+        </div>
     </div>
 
     <script src="js/api-client.js"></script>
