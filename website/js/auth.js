@@ -5,6 +5,8 @@ function toggleForms() {
     document.querySelectorAll('.error-message, .success-message').forEach(msg => msg.style.display = 'none');
 }
 
+document.getElementById('show-register-link').addEventListener('click', toggleForms);
+document.getElementById('show-login-link').addEventListener('click', toggleForms);
 // Pokazuje ekran weryfikacji OTP, chowa rejestrację/logowanie.
 // Osobna funkcja od toggleForms(), bo tu przechodzimy zawsze w jedną stronę
 // (rejestracja -> weryfikacja), a nie przełączamy między dwoma stanami.
