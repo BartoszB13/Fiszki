@@ -120,23 +120,23 @@
                 <div id="register-success" class="success-message">Konto utworzone! Możesz się zalogować.</div>
                 <button type="submit" class="btn btn-primary" id="btn-register-submit">Utwórz konto</button>
             </form>
-            <div id="verify-section" class="hidden">
-                <h2>Zweryfikuj swój adres e-mail</h2>
-                <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
-                    Wysłaliśmy 6-cyfrowy kod na adres <strong id="verify-email-display"></strong>
-                </p>
-                <form id="verify-form">
-                    <div class="input-group">
-                        <label for="verify-otp">Kod weryfikacyjny</label>
-                        <input type="text" id="verify-otp" required minlength="6" maxlength="6"
-                            inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code">
-                    </div>
-                    <div id="verify-error" class="error-message"></div>
-                    <div id="verify-success" class="success-message">Konto zweryfikowane! Przekierowywanie...</div>
-                    <button type="submit" class="btn btn-primary" id="btn-verify-submit">Zweryfikuj konto</button>
-                </form>
-            </div>
             <div class="switch-form">Masz już konto? <a id="show-login-link">Zaloguj się</a></div>
+        </div>
+        <div id="verify-section" class="hidden">
+            <h2>Zweryfikuj swój adres e-mail</h2>
+            <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
+                Wysłaliśmy 6-cyfrowy kod na adres <strong id="verify-email-display"></strong>
+            </p>
+            <form id="verify-form">
+                <div class="input-group">
+                    <label for="verify-otp">Kod weryfikacyjny</label>
+                    <input type="text" id="verify-otp" required minlength="6" maxlength="6"
+                        inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code">
+                </div>
+                <div id="verify-error" class="error-message"></div>
+                <div id="verify-success" class="success-message">Konto zweryfikowane! Przekierowywanie...</div>
+                <button type="submit" class="btn btn-primary" id="btn-verify-submit">Zweryfikuj konto</button>
+            </form>
         </div>
     </div>
 
