@@ -19,6 +19,9 @@ model User {
   username     String   @unique
   email        String   @unique
   passwordHash String   @map("password_hash")
+  isVerified               Boolean   @default(false)
+  verificationCode         String?   // stored as a bcrypt hash, not plaintext
+  verificationCodeExpires  DateTime?
   createdAt    DateTime @default(now()) @map("created_at")
 
   // Licznik nieudanych logowań + blokada czasowa - dodatkowa warstwa

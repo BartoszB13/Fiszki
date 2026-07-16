@@ -5,7 +5,29 @@ function toggleForms() {
     document.querySelectorAll('.error-message, .success-message').forEach(msg => msg.style.display = 'none');
 }
 
+// Pokazuje ekran weryfikacji OTP, chowa rejestrację/logowanie.
+// Osobna funkcja od toggleForms(), bo tu przechodzimy zawsze w jedną stronę
+// (rejestracja -> weryfikacja), a nie przełączamy między dwoma stanami.
+function showVerifySection(email) {
+    document.getElementById('register-section').classList.add('hidden');
+    document.getElementById('login-section').classList.add('hidden');
+    document.getElementById('verify-section').classList.remove('hidden');
+    document.getElementById('verify-email-display').innerText = email;
+    document.querySelectorAll('.error-message, .success-message').forEach(msg => msg.style.display = 'none');
+}
+
+function backToLoginFromVerify() {
+    document.getElementById('verify-section').classList.add('hidden');
+    document.getElementById('login-section').classList.remove('hidden');
+    document.querySelectorAll('input').forEach(input => input.value = '');
+    document.querySelectorAll('.error-message, .success-message').forEach(msg => msg.style.display = 'none');
+}
+
 const API_URL = FiszkiAPI.API_URL;
+
+// Trzymamy e-mail oczekujący na weryfikację w zmiennej modułu (nie w localStorage —
+// to tylko stan UI na czas jednej sesji przeglądania tej strony).
+let pendingVerificationEmail = null;
 
 // --- REJESTRACJA ---
 document.getElementById('register-form').addEventListener('submit', async function (e) {
@@ -39,11 +61,58 @@ document.getElementById('register-form').addEventListener('submit', async functi
         const data = await res.json();
 
         if (data.success) {
-            successMsg.style.display = 'block';
             document.getElementById('register-form').reset();
-            setTimeout(() => toggleForms(), 1500);
+            pendingVerificationEmail = email;
+            showVerifySection(email);
         } else {
             errorMsg.innerText = data.message || 'Wystąpił błąd podczas rejestracji.';
+            errorMsg.style.display = 'block';
+        }
+    } catch (err) {
+        console.error('Error:', err);
+        errorMsg.innerText = 'Błąd połączenia z serwerem.';
+        errorMsg.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+    }
+});
+
+// --- WERYFIKACJA OTP ---
+document.getElementById('verify-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const errorMsg = document.getElementById('verify-error');
+    const successMsg = document.getElementById('verify-success');
+    const btn = document.getElementById('btn-verify-submit');
+    const otp = document.getElementById('verify-otp').value.trim();
+
+    errorMsg.style.display = 'none';
+    successMsg.style.display = 'none';
+
+    if (!pendingVerificationEmail) {
+        errorMsg.innerText = 'Brak adresu e-mail do weryfikacji. Zarejestruj się ponownie.';
+        errorMsg.style.display = 'block';
+        return;
+    }
+
+    btn.disabled = true;
+    try {
+        const res = await fetch(`${API_URL}/verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: pendingVerificationEmail, otp }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            successMsg.style.display = 'block';
+            document.getElementById('verify-form').reset();
+            setTimeout(() => {
+                pendingVerificationEmail = null;
+                backToLoginFromVerify();
+            }, 1500);
+        } else {
+            errorMsg.innerText = data.message || 'Nieprawidłowy kod weryfikacyjny.';
             errorMsg.style.display = 'block';
         }
     } catch (err) {
@@ -85,6 +154,14 @@ document.getElementById('login-form').addEventListener('submit', async function 
             // strona i tak odświeży sesję z ciasteczka przy starcie.
             localStorage.setItem('currentUser', data.username);
             window.location.href = 'index.html';
+        } else if (res.status === 403) {
+            // Konto istnieje i hasło jest poprawne, ale e-mail nie został
+            // zweryfikowany — dajemy użytkownikowi drogę do dokończenia weryfikacji
+            // zamiast zwykłego komunikatu błędu.
+            pendingVerificationEmail = loginInput;
+            showVerifySection(loginInput);
+            document.getElementById('verify-error').innerText = data.message || 'Konto nie zostało zweryfikowane. Sprawdź e-mail.';
+            document.getElementById('verify-error').style.display = 'block';
         } else {
             errorMsg.innerText = data.message || 'Nieprawidłowy login lub hasło.';
             errorMsg.style.display = 'block';
@@ -97,5 +174,3 @@ document.getElementById('login-form').addEventListener('submit', async function 
         btn.disabled = false;
     }
 });
-document.getElementById('show-register-link').addEventListener('click', toggleForms);
-document.getElementById('show-login-link').addEventListener('click', toggleForms);

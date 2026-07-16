@@ -1,6 +1,9 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const prisma = require('../db');
+const { z } = require('zod');
+const { PrismaClient } = require('@prisma/client');
+const rateLimit = require('express-rate-limit');
 const { loginLimiter, refreshLimiter } = require('../middleware/rateLimit.middleware');
 const { setRefreshCookie, clearRefreshCookie, REFRESH_COOKIE_NAME } = require('../utils/cookies');
 const {
@@ -16,9 +19,30 @@ const SALT_ROUNDS = 12;
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
 
+const { sendVerificationEmail } = require('../utils/mailer');
+const { generateOTP } = require('../utils/otp');
+
+const OTP_EXPIRY_MINUTES = 10;
+
+// Rate limit weryfikacji OTP - klucz po IP+email, tak jak przy loginie,
+// żeby nie dało się brute-forcować 6-cyfrowego kodu.
+const verifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  keyGenerator: (req) => `${req.ip}:${req.body?.email || ''}`,
+  handler: (req, res) => {
+    return res.status(429).json({
+      success: false,
+      message: 'Zbyt wiele prób weryfikacji. Spróbuj ponownie za 15 minut.',
+    });
+  },
+});
+
 /**
  * POST /api/register
- * (bez zmian funkcjonalnych względem poprzedniej wersji — bcrypt + unikalność)
+ * Po utworzeniu użytkownika generujemy OTP (hashowany bcryptem, tak jak
+ * refresh tokeny), zapisujemy w DB z czasem wygaśnięcia i wysyłamy mailem.
+ * Konto zostaje utworzone niezweryfikowane (isVerified: false).
  */
 router.post('/register', async (req, res) => {
   try {
@@ -32,18 +56,91 @@ router.post('/register', async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    const otp = generateOTP();
+    const otpHash = await bcrypt.hash(otp, SALT_ROUNDS);
+    const otpExpires = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
     const user = await prisma.user.create({
-      data: { username: username.trim(), email: email.trim(), passwordHash },
+      data: {
+        username: username.trim(),
+        email: email.trim(),
+        passwordHash,
+        isVerified: false,
+        verificationCode: otpHash,
+        verificationCodeExpires: otpExpires,
+      },
     });
 
-    return res.status(201).json({ success: true, userId: user.id });
+    try {
+      await sendVerificationEmail(user.email, otp);
+    } catch (mailErr) {
+      // Konto już istnieje w DB - nie cofamy rejestracji z powodu awarii maila,
+      // użytkownik będzie mógł poprosić o ponowną wysyłkę (endpoint do dodania osobno).
+      console.error('Błąd wysyłki maila weryfikacyjnego:', mailErr);
+    }
+
+    return res.status(201).json({
+      success: true,
+      userId: user.id,
+      message: 'Konto utworzone. Sprawdź e-mail, aby zweryfikować konto.',
+    });
   } catch (err) {
     if (err.code === 'P2002') {
       return res.status(409).json({ success: false, message: 'Ten login lub e-mail jest już zarejestrowany.' });
     }
     console.error('Błąd rejestracji:', err);
     return res.status(500).json({ success: false, message: 'Błąd zapisu w bazie danych.' });
+  }
+});
+
+/**
+ * POST /api/verify
+ * Sprawdza OTP względem zahashowanej wartości w DB i czas wygaśnięcia.
+ * Celowo generyczny komunikat błędu (jak przy loginie) - nie ujawniamy,
+ * czy problem to zły kod, wygasły kod, czy nieistniejący e-mail.
+ */
+router.post('/verify', verifyLimiter, async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: 'Brakujące dane w żądaniu.' });
+    }
+
+    const genericError = { success: false, message: 'Nieprawidłowy lub wygasły kod weryfikacyjny.' };
+
+    const user = await prisma.user.findUnique({ where: { email: email.trim() } });
+
+    if (!user || !user.verificationCode || !user.verificationCodeExpires) {
+      return res.status(400).json(genericError);
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ success: false, message: 'Konto jest już zweryfikowane.' });
+    }
+
+    if (user.verificationCodeExpires < new Date()) {
+      return res.status(400).json(genericError);
+    }
+
+    const otpMatches = await bcrypt.compare(String(otp), user.verificationCode);
+    if (!otpMatches) {
+      return res.status(400).json(genericError);
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        isVerified: true,
+        verificationCode: null,
+        verificationCodeExpires: null,
+      },
+    });
+
+    return res.json({ success: true, message: 'Konto zostało pomyślnie zweryfikowane.' });
+  } catch (err) {
+    console.error('Błąd weryfikacji OTP:', err);
+    return res.status(500).json({ success: false, message: 'Błąd zapytania do bazy danych.' });
   }
 });
 
@@ -95,6 +192,15 @@ router.post('/login', loginLimiter, async (req, res) => {
       });
 
       return res.status(401).json(genericError);
+    }
+
+    // Sprawdzamy weryfikację PO haśle - unikamy ujawniania statusu konta
+    // (zweryfikowane/nie) osobie, która nie zna prawidłowego hasła.
+    if (!user.isVerified) {
+      return res.status(403).json({
+        success: false,
+        message: 'Konto nie zostało zweryfikowane. Sprawdź swoją skrzynkę e-mail.',
+      });
     }
 
     // Udane logowanie -> reset licznika prób.
