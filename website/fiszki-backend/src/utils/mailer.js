@@ -120,7 +120,7 @@ async function sendVerificationEmail(userEmail, verificationCode) {
 
   return sendGmailMessage({
     to: userEmail,
-    subject: 'Twój kod weryfikacyjny Fiszki.io',
+    subject: 'Twoj kod weryfikacyjny Fiszki.io',
     html,
   });
 }
