@@ -197,10 +197,36 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     // Sprawdzamy weryfikację PO haśle - unikamy ujawniania statusu konta
     // (zweryfikowane/nie) osobie, która nie zna prawidłowego hasła.
+// Sprawdzamy weryfikację PO haśle - unikamy ujawniania statusu konta
+    // (zweryfikowane/nie) osobie, która nie zna prawidłowego hasła.
     if (!user.isVerified) {
+      // Generujemy i wysyłamy NOWY kod przy każdej próbie logowania na
+      // niezweryfikowane konto — stary kod z rejestracji mógł już wygasnąć
+      // (10 min), a user i tak nie ma innego sposobu, żeby dostać nowy.
+      const otp = generateOTP();
+      const otpHash = await bcrypt.hash(otp, SALT_ROUNDS);
+      const otpExpires = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          verificationCode: otpHash,
+          verificationCodeExpires: otpExpires,
+        },
+      });
+
+      try {
+        await sendVerificationEmail(user.email, otp);
+      } catch (mailErr) {
+        console.error('Błąd wysyłki maila weryfikacyjnego (login):', mailErr);
+        // Nie blokujemy odpowiedzi — user i tak zobaczy ekran weryfikacji;
+        // jeśli mail faktycznie nie dotarł, może spróbować ponownie
+        // (kolejna próba logowania wygeneruje kolejny kod).
+      }
+
       return res.status(403).json({
         success: false,
-        message: 'Konto nie zostało zweryfikowane. Sprawdź swoją skrzynkę e-mail.',
+        message: 'Konto nie zostało zweryfikowane. Wysłaliśmy nowy kod na Twój e-mail.',
         email: user.email,
       });
     }
