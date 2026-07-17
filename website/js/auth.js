@@ -7,6 +7,20 @@ function toggleForms() {
 
 document.getElementById('show-register-link').addEventListener('click', toggleForms);
 document.getElementById('show-login-link').addEventListener('click', toggleForms);
+
+/**
+ * Masks an email's local part for display: first 6 chars visible (fewer if
+ * the local part is shorter), then exactly 3 asterisks, then the full domain.
+ * e.g. "bartosz123@gmail.com" -> "bartos***@gmail.com"
+ * e.g. "john@gmail.com"       -> "john***@gmail.com"
+ */
+function maskEmail(email) {
+    if (typeof email !== 'string' || !email.includes('@')) return email;
+    const [localPart, domain] = email.split('@');
+    const visible = localPart.slice(0, 6);
+    return `${visible}***@${domain}`;
+}
+
 // Pokazuje ekran weryfikacji OTP, chowa rejestrację/logowanie.
 // Osobna funkcja od toggleForms(), bo tu przechodzimy zawsze w jedną stronę
 // (rejestracja -> weryfikacja), a nie przełączamy między dwoma stanami.
@@ -14,7 +28,8 @@ function showVerifySection(email) {
     document.getElementById('register-section').classList.add('hidden');
     document.getElementById('login-section').classList.add('hidden');
     document.getElementById('verify-section').classList.remove('hidden');
-    document.getElementById('verify-email-display').innerText = email;
+    // .innerText, nie innerHTML - i wyświetlamy zamaskowany e-mail, nie surowy.
+    document.getElementById('verify-email-display').innerText = maskEmail(email);
     document.querySelectorAll('.error-message, .success-message').forEach(msg => msg.style.display = 'none');
 }
 
@@ -29,6 +44,7 @@ const API_URL = FiszkiAPI.API_URL;
 
 // Trzymamy e-mail oczekujący na weryfikację w zmiennej modułu (nie w localStorage —
 // to tylko stan UI na czas jednej sesji przeglądania tej strony).
+// UWAGA: to zawsze PRAWDZIWY (niezamaskowany) adres — potrzebny w body /api/verify.
 let pendingVerificationEmail = null;
 
 // --- REJESTRACJA ---
@@ -64,8 +80,10 @@ document.getElementById('register-form').addEventListener('submit', async functi
 
         if (data.success) {
             document.getElementById('register-form').reset();
-            pendingVerificationEmail = email;
-            showVerifySection(email);
+            // Backend zwraca teraz też data.email - używamy go jako źródła prawdy,
+            // ale w praktyce jest identyczny z tym, co user wpisał w formularzu.
+            pendingVerificationEmail = data.email || email;
+            showVerifySection(pendingVerificationEmail);
         } else {
             errorMsg.innerText = data.message || 'Wystąpił błąd podczas rejestracji.';
             errorMsg.style.display = 'block';
@@ -160,8 +178,11 @@ document.getElementById('login-form').addEventListener('submit', async function 
             // Konto istnieje i hasło jest poprawne, ale e-mail nie został
             // zweryfikowany — dajemy użytkownikowi drogę do dokończenia weryfikacji
             // zamiast zwykłego komunikatu błędu.
-            pendingVerificationEmail = loginInput;
-            showVerifySection(loginInput);
+            // Backend teraz zwraca prawdziwy data.email (user mógł zalogować się
+            // nazwą użytkownika, nie samym adresem e-mail) — fallback na loginInput
+            // tylko na wypadek starszej wersji API bez tego pola.
+            pendingVerificationEmail = data.email || loginInput;
+            showVerifySection(pendingVerificationEmail);
             document.getElementById('verify-error').innerText = data.message || 'Konto nie zostało zweryfikowane. Sprawdź e-mail.';
             document.getElementById('verify-error').style.display = 'block';
         } else {

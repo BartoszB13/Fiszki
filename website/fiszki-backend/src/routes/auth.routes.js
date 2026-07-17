@@ -82,6 +82,7 @@ router.post('/register', async (req, res) => {
     return res.status(201).json({
       success: true,
       userId: user.id,
+      email: user.email,
       message: 'Konto utworzone. Sprawdź e-mail, aby zweryfikować konto.',
     });
   } catch (err) {
@@ -200,6 +201,7 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(403).json({
         success: false,
         message: 'Konto nie zostało zweryfikowane. Sprawdź swoją skrzynkę e-mail.',
+        email: user.email,
       });
     }
 
