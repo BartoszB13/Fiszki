@@ -3,190 +3,325 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fiszki - Zarządzaj Słówkami</title>
-
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://fiszki-v1aq.onrender.com; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+    <title>Fiszki - Opanuj języki szybciej</title>
     <style>
         :root {
-            --primary: #4A90E2; --primary-dark: #357ABD; --success: #2ECC71;
-            --danger: #E74C3C; --dark: #333333; --light: #F5F7FA;
-            --white: #FFFFFF; --border: #E1E8ED; --dark-blue: #1A365D;
-            --card-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            --primary: #4A90E2; --success: #2ECC71; --dark: #333333;
+            --light: #F5F7FA; --white: #FFFFFF; --dark-blue: #1A365D;
+            --border: #E1E8ED; --danger: #E74C3C;
         }
 
         * { box-sizing: border-box; }
         html { scroll-behavior: smooth; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--light); color: var(--dark); margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
 
-        img, svg { max-width: 100%; height: auto; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light); color: var(--dark);
+            margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh;
+        }
 
-        header { background-color: var(--white); padding: 15px 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; flex-wrap: wrap; }
+        img, svg { max-width: 100%; height: auto; display: block; }
+
+        header {
+            background-color: var(--white); padding: 15px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; z-index: 1000; flex-wrap: wrap;
+        }
+
         .logo { font-size: 1.5rem; font-weight: bold; color: var(--primary); text-decoration: none; }
-        .user-menu { font-weight: bold; color: var(--primary); }
 
-        main { padding: 30px; flex-grow: 1; max-width: 1200px; margin: 0 auto; width: 100%; }
-        .navigation-bar { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; font-size: 1.125rem; font-weight: bold; color: var(--primary); flex-wrap: wrap; }
-        .btn-back { background-color: var(--light); border: 2px solid var(--primary); color: var(--primary); border-radius: 8px; padding: 6px 12px; font-size: 0.875rem; font-weight: bold; cursor: pointer; transition: 0.2s; text-decoration: none; touch-action: manipulation; }
-        .btn-back:hover { background-color: var(--primary); color: white; }
+        .header-buttons { display: flex; gap: 15px; align-items: center; }
 
-        .workspace { display: flex; gap: 30px; align-items: flex-start; }
-        .left-panel { flex: 1; min-width: 0; background: var(--white); padding: 25px; border-radius: 12px; box-shadow: var(--card-shadow); }
-        .right-panel { flex: 1; min-width: 0; background: var(--white); padding: 25px; border-radius: 12px; box-shadow: var(--card-shadow); max-height: 75vh; display: flex; flex-direction: column; }
-
-        h2 { margin-top: 0; color: var(--primary); font-size: 1.25rem; border-bottom: 2px solid var(--light); padding-bottom: 10px; }
-        .right-panel h2 { color: var(--dark); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
-
-        .photo-mock-zone {
-            border: 2px dashed #CBD5E1; background-color: #F8FAFC; border-radius: 10px; padding: 18px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; margin-bottom: 25px; touch-action: manipulation;
+        .btn {
+            border: none; border-radius: 8px; padding: 10px 20px;
+            font-size: 0.9375rem; font-weight: bold; cursor: pointer;
+            transition: all 0.2s ease; text-decoration: none; display: inline-block;
+            touch-action: manipulation;
         }
-        .photo-mock-zone:hover { border-color: var(--primary); background-color: #F1F5F9; }
-        .photo-mock-zone .badge-soon { background: #E2E8F0; color: #475569; font-size: 0.6875rem; padding: 3px 8px; border-radius: 12px; position: absolute; top: 10px; right: 10px; font-weight: bold; }
 
-        .divider { display: flex; align-items: center; text-align: center; margin: 20px 0; color: #94A3B8; font-size: 0.75rem; font-weight: bold; }
-        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid var(--border); }
-        .divider:not(:empty)::before { margin-right: .5em; }
-        .divider:not(:empty)::after { margin-left: .5em; }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+        .btn-outline { background-color: transparent; border: 2px solid var(--primary); color: var(--primary); }
+        .btn-outline:hover { background-color: var(--primary); color: white; }
 
-        .lang-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 20px; background: var(--light); padding: 12px; border-radius: 8px; flex-wrap: wrap; }
-        .lang-col { flex: 1; min-width: 110px; }
-        .lang-col label { font-size: 0.75rem; font-weight: bold; color: #64748B; display: block; margin-bottom: 4px; }
-        .lang-col select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); font-weight: bold; font-size: 0.875rem; outline: none;}
+        .btn-text { background: transparent; border: none; color: var(--dark); font-size: 0.9375rem; font-weight: 600; text-decoration: none; cursor: pointer; }
+        .btn-text:hover { color: var(--primary); }
 
-        .btn-swap {
-            background: var(--white); border: 1px solid var(--border); color: var(--primary);
-            border-radius: 50%; width: 38px; height: 38px; font-size: 1.125rem; font-weight: bold;
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            transition: all 0.2s ease; margin-bottom: 1px; flex-shrink: 0; touch-action: manipulation;
+        .user-menu {
+            position: relative;
+            display: inline-block;
+            padding: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            color: var(--primary);
         }
-        .btn-swap:hover { background: var(--primary); color: white; transform: rotate(180deg); }
 
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; font-weight: bold; margin-bottom: 8px; font-size: 0.875rem; }
-        /* font-size: 16px na inputach - zapobiega auto-zoomowi Safari na iOS */
-        .form-group input { width: 100%; padding: 14px; border: 2px solid var(--border); border-radius: 8px; font-size: 16px; outline: none; transition: 0.2s; }
-        .form-group input:focus { border-color: var(--primary); }
-        .char-counter { font-size: 0.75rem; color: #94A3B8; text-align: right; margin-top: 4px; }
+        .user-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: var(--white);
+            min-width: 150px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            z-index: 1;
+            border: 1px solid var(--border);
+        }
 
-        .btn-submit { background-color: var(--success); color: white; border: none; border-radius: 8px; padding: 14px; font-size: 1rem; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; touch-action: manipulation; }
-        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3); }
-        .btn-submit:disabled { background-color: #95a5a6; cursor: wait; transform: none; box-shadow: none; }
+        .user-menu:hover .user-dropdown,
+        .user-menu:focus-within .user-dropdown {
+            display: block;
+        }
 
-        .word-count { font-size: 0.875rem; color: #777; font-weight: normal; background: var(--light); padding: 4px 10px; border-radius: 20px; }
-        .words-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
-        .word-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-bottom: 1px solid var(--light); transition: 0.2s; gap: 10px; }
-        .word-item:hover { background-color: var(--light); }
-        .word-base { font-weight: bold; color: var(--dark); font-size: 1rem; word-break: break-word; }
-        .word-translation { color: var(--primary); font-size: 0.9375rem; word-break: break-word; }
-        .btn-remove-word { background: none; border: none; color: var(--danger); cursor: pointer; font-weight: bold; font-size: 1.125rem; padding: 5px; opacity: 0.5; transition: 0.2s; flex-shrink: 0; touch-action: manipulation; }
-        .word-item:hover .btn-remove-word { opacity: 1; }
+        .user-dropdown button {
+            width: 100%;
+            text-align: left;
+            padding: 12px 16px;
+            background: none;
+            border: none;
+            font-size: 0.875rem;
+            cursor: pointer;
+            color: var(--danger);
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .user-dropdown button:hover {
+            background-color: #ffe6e6;
+        }
+
+        .hero { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 60px 20px; flex-grow: 0; }
+        h1 { font-size: 2.5rem; margin-bottom: 10px; line-height: 1.2; }
+        h1 span { color: var(--primary); }
+
+        .hidden { display: none !important; }
+        .hero > * { position: relative; z-index: 1; }
+        .how-it-works { position: relative; overflow: hidden; padding: 70px 20px; background: var(--white); }
+        .how-it-works > * { position: relative; z-index: 1; }
+        .how-it-works-inner { max-width: 1080px; margin: 0 auto; }
+
+        .hiw-intro { text-align: center; max-width: 640px; margin: 0 auto 45px; }
+        .hiw-eyebrow { display: inline-block; font-size: 0.75rem; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase; color: var(--primary); background: rgba(74, 144, 226, 0.1); padding: 5px 14px; border-radius: 20px; margin-bottom: 14px; }
+        .how-it-works h2 { font-size: 2rem; margin: 0 0 12px; }
+        .how-it-works .hiw-intro p { color: #555; font-size: 1rem; line-height: 1.6; margin: 0; }
+
+        /* Static flashcard mock-up: reuses the same stacked-card language as the deck grid elsewhere in the app */
+        .flashcard-demo {
+            width: 220px; height: 130px; margin: 0 auto 50px; position: relative;
+        }
+        .demo-card {
+            position: absolute; inset: 0; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 1.5rem; user-select: none;
+        }
+        .demo-card-back {
+            background: var(--light); border: 2px solid var(--border); color: #9AA5B1;
+            transform: rotate(6deg) translate(10px, 6px);
+        }
+        .demo-card-front {
+            background: var(--white); border: 2px solid var(--primary); color: var(--dark);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+        }
+        .demo-card-front .demo-tag {
+            position: absolute; top: 10px; left: 14px; font-size: 0.6875rem; font-weight: bold;
+            letter-spacing: 0.5px; text-transform: uppercase; color: var(--primary); opacity: 0.7;
+        }
+        .demo-card-back .demo-tag {
+            position: absolute; top: 10px; left: 14px; font-size: 0.6875rem; font-weight: bold;
+            letter-spacing: 0.5px; text-transform: uppercase; color: #9AA5B1;
+        }
+
+        .steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+        .step {
+            background: var(--white); border: 1px solid var(--border); border-radius: 12px;
+            padding: 26px 22px; text-align: left; transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .step:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.06); }
+        .step-icon { font-size: 1.75rem; margin-bottom: 12px; }
+        .step-num { font-size: 0.75rem; font-weight: bold; color: var(--primary); letter-spacing: 1px; margin-bottom: 4px; }
+        .step h3 { font-size: 1.0625rem; margin: 0 0 8px; }
+        .step p { font-size: 0.9rem; color: #666; line-height: 1.55; margin: 0; }
 
         footer { background-color: var(--dark-blue); color: rgba(255, 255, 255, 0.8); text-align: center; padding: 20px; font-size: 0.875rem; margin-top: auto; }
 
-        /* ===== Małe laptopy (do 1024px) ===== */
+        /* ===== Hamburger - widoczny tylko poniżej 768px ===== */
+        .hamburger-btn {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            width: 40px;
+            height: 40px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            touch-action: manipulation;
+        }
+        .hamburger-btn span {
+            display: block;
+            width: 24px;
+            height: 2px;
+            background-color: var(--dark);
+            border-radius: 2px;
+            transition: transform 0.25s ease, opacity 0.25s ease;
+        }
+        .hamburger-btn.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+        .hamburger-btn.active span:nth-child(2) { opacity: 0; }
+        .hamburger-btn.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+        /* ===== Małe laptopy / tablety poziome (do 1024px) ===== */
         @media (max-width: 1024px) {
-            main { padding: 24px; }
-            .workspace { gap: 20px; }
+            header { padding: 15px 20px; }
+            h1 { font-size: 2.1rem; }
         }
 
-        /* ===== Tablety (do 768px): panele w kolumnie ===== */
+        /* ===== Tablety (do 768px): włączamy hamburger ===== */
         @media (max-width: 768px) {
-            .workspace { flex-direction: column; }
-            .left-panel, .right-panel { width: 100%; max-height: none; }
-            header, main { padding: 15px; }
-            .btn-remove-word { opacity: 1; }
-            .right-panel { max-height: 60vh; }
+            .hamburger-btn { display: flex; }
+
+            .header-buttons {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background-color: var(--white);
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0;
+                box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+                border-top: 1px solid var(--border);
+            }
+            .header-buttons.open { display: flex; }
+
+            .header-buttons > .btn-text,
+            .header-buttons > .btn {
+                width: 100%;
+                text-align: left;
+                padding: 14px 20px;
+                border-radius: 0;
+                border-bottom: 1px solid var(--light);
+            }
+            .header-buttons > .btn-outline { border: none; }
+
+            .user-menu { width: 100%; padding: 0; }
+            .user-menu .user-dropdown {
+                display: none;
+                position: static;
+                box-shadow: none;
+                border: none;
+                border-radius: 0;
+            }
+            .user-menu.open .user-dropdown { display: block; }
+            #display-username-wrap { padding: 14px 20px; display: block; border-bottom: 1px solid var(--light); }
         }
 
         /* ===== Smartfony (iPhone 11 / 15 / 15 Pro, do 480px) ===== */
         @media (max-width: 480px) {
             header { padding: 12px 16px; }
-            main { padding: 12px; }
-            .logo { font-size: 1.25rem; }
-            .left-panel, .right-panel { padding: 16px; border-radius: 10px; }
-            .navigation-bar { font-size: 0.95rem; gap: 10px; }
-            .lang-row { padding: 10px; }
-            .lang-col { min-width: 100%; }
-            .btn-swap { align-self: center; transform: rotate(90deg); }
-            .btn-swap:hover { transform: rotate(270deg); }
-            h2 { font-size: 1.1rem; }
-            .word-base { font-size: 0.9375rem; }
-            .word-translation { font-size: 0.875rem; }
-        }
+            .logo { font-size: 1.3rem; }
+            .hero { padding: 40px 16px; }
+            h1 { font-size: 1.7rem; }
+            .hero p { font-size: 0.9rem; }
+            .btn { font-size: 0.9rem; padding: 10px 18px; }
+            #about { padding: 40px 16px !important; }
+
+            .how-it-works { padding: 50px 16px; }
+            .how-it-works h2 { font-size: 1.6rem; }
+            .flashcard-demo { width: 180px; height: 108px; margin-bottom: 40px; }
+            .demo-card { font-size: 1.2rem; }
+            .steps-grid { grid-template-columns: 1fr; }
+
+
     </style>
 </head>
 <body>
 
     <header>
         <a href="index.html" class="logo">Fiszki.io</a>
-        <div class="user-menu">👤 <span id="display-username">User</span></div>
+
+        <button id="nav-hamburger" class="hamburger-btn" aria-label="Otwórz menu" aria-expanded="false" aria-controls="header-buttons">
+            <span></span><span></span><span></span>
+        </button>
+
+        <div class="header-buttons" id="header-buttons">
+            <a href="#how-it-works" class="btn-text">Jak to działa</a>
+            <a href="#about" class="btn-text">O Nas</a>
+            <button id="btn-create" class="btn-text">Twórz</button>
+
+            <a href="auth.html" id="btn-login" class="btn btn-outline">Zaloguj się</a>
+
+            <div id="user-profile" class="user-menu hidden">
+                <span id="display-username-wrap">👤 <span id="display-username">User</span></span>
+                <div class="user-dropdown">
+                    <button id="btn-logout">Wyloguj się</button>
+                </div>
+            </div>
+        </div>
     </header>
 
     <main>
-        <div class="navigation-bar">
-            <a href="Tworzenie.html" class="btn-back">⬅ Wróć do folderów</a>
-            <span>Edycja Talii</span>
-        </div>
+        <section class="hero">
 
-        <div class="workspace">
 
-            <div class="left-panel">
+            <h1>Nauka słówek, która <span>działa</span></h1>
+            <p>Wykorzystaj potęgę fiszek, aby zapamiętywać słownictwo na zawsze.</p>
+            <div style="margin-top: 30px;">
+                <a href="auth.html" id="btn-hero-start" class="btn btn-primary">Zacznij naukę za darmo</a>
+            </div>
+        </section>
 
-                <input type="file" id="image-upload" accept="image/*" style="display: none;">
-                <div class="photo-mock-zone" id="btn-scan-photo">
-                    <div style="font-size: 28px; margin-bottom: 5px;">📷</div>
-                    <strong style="display: block; font-size: 15px; color: var(--dark);" id="scan-label">Skanuj ze zdjęcia (AI)</strong>
-                    <span style="font-size: 13px; color: #64748B;">Automatycznie wyodrębnia słówka, <br>Narazie tylko J.Angielski</br></span>
+        <section id="how-it-works" class="how-it-works">
+            <div class="how-it-works-inner">
+                <div class="hiw-intro">
+                    <span class="hiw-eyebrow">Czym są fiszki?</span>
+                    <h2>Dwustronna karta, jeden nawyk</h2>
+                    <p>Fiszka to prosta karta z dwiema stronami: słówkiem po jednej i tłumaczeniem po drugiej. Widzisz słowo, próbujesz sobie przypomnieć znaczenie, sprawdzasz się — i wracasz do tych, które sprawiły trudność.</p>
                 </div>
 
-                <div class="divider">SZYBKIE DODAWANIE</div>
-
-                <div class="lang-row">
-                    <div class="lang-col">
-                        <label>Wpisuję w:</label>
-                        <select id="source-lang">
-                            <option value="pl" selected>Polski (pl)</option>
-                            <option value="en">Angielski (en)</option>
-                            <option value="de">Niemiecki (de)</option>
-                            <option value="es">Hiszpański (es)</option>
-                            <option value="it">Włoski (it)</option>
-                        </select>
+                <div class="flashcard-demo" aria-hidden="true">
+                    <div class="demo-card demo-card-back">
+                        <span class="demo-tag">Tłumaczenie</span>
+                        Pies
                     </div>
-
-                    <button type="button" class="btn-swap" id="btn-swap-langs" title="Odwróć języki">⇄</button>
-
-                    <div class="lang-col">
-                        <label>Tłumacz na:</label>
-                        <select id="target-lang">
-                            <option value="en" selected>Angielski (en)</option>
-                            <option value="pl">Polski (pl)</option>
-                            <option value="de">Niemiecki (de)</option>
-                            <option value="es">Hiszpański (es)</option>
-                            <option value="it">WŁoski (it)</option>
-                       
-                        </select>
+                    <div class="demo-card demo-card-front">
+                        <span class="demo-tag">Słówko</span>
+                        Dog
                     </div>
                 </div>
 
-                <form id="add-word-form">
-                    <div class="form-group">
-                        <label>Słówko</label>
-                        <input type="text" id="input-base" placeholder="Wpisz słowo i naciśnij Enter..." required autocomplete="off" maxlength="50">
-                        <div class="char-counter"><span id="base-counter">0</span>/50</div>
+                <div class="steps-grid">
+                    <div class="step">
+                        <div class="step-icon">📁</div>
+                        <div class="step-num">KROK 1</div>
+                        <h3>Twórz talie</h3>
+                        <p>Organizuj słownictwo w foldery i talie — dokładnie tak, jak w prawdziwym segregatorze na fiszki.</p>
                     </div>
-
-                    <button type="submit" class="btn-submit" id="btn-submit">➕ Przetłumacz i dodaj</button>
-                </form>
-
-                <button type="button" class="btn-submit" id="btn-start-learning" style="background-color: var(--primary); margin-top: 15px;">
-                    🎓 Zacznij naukę
-                </button>
+                    <div class="step">
+                        <div class="step-icon">📷</div>
+                        <div class="step-num">KROK 2</div>
+                        <h3>Dodawaj słówka</h3>
+                        <p>Wpisuj ręcznie z automatycznym tłumaczeniem albo zeskanuj stronę podręcznika — resztę zrobi AI.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-icon">🎓</div>
+                        <div class="step-num">KROK 3</div>
+                        <h3>Ucz się fiszkami</h3>
+                        <p>Przechodź przez talię, oceniaj swoją odpowiedź i wracaj do błędów, aż zostaną w pamięci na dobre.</p>
+                    </div>
+                </div>
             </div>
+        </section>
 
-            <div class="right-panel">
-                <h2>Lista słówek <span class="word-count" id="word-counter">0</span></h2>
-                <ul class="words-list" id="words-list"></ul>
-            </div>
-
-        </div>
+        <section id="about" style="padding: 60px 20px; text-align: center; background: #fff;">
+            <h2>O Nas</h2>
+            <p style="max-width: 600px; margin: 0 auto; color: #555;">Stawiamy na czysty minimalizm, brak rozpraszaczy oraz maksymalną wydajność na każdym smartfonie.</p>
+        </section>
     </main>
 
     <footer>
@@ -194,6 +329,7 @@
     </footer>
 
     <script src="js/api-client.js"></script>
-    <script src="js/import.js"></script>
+    <script src="js/index.js"></script>
+    <script src="js/nav-toggle.js"></script>
 </body>
 </html>
