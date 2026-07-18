@@ -90,30 +90,71 @@ async function deleteItem(itemId, itemName) {
 // nazwa folderu/talii pochodzi od użytkownika, więc nawet po sanityzacji
 // po stronie backendu wolimy nie budować HTML-a przez interpolację
 // stringów (i tym samym uniknąć wektora XSS na tym widoku).
+// Formatuje ISO datę z backendu (createdAt) na czytelny format dd.mm.rrrr.
+function formatItemDate(isoString) {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+// Renderowanie przez createElement/textContent (NIE innerHTML) — nazwa
+// folderu/talii pochodzi od użytkownika, więc unikamy budowania HTML-a
+// przez interpolację stringów (spójne z resztą apki, np. import.js).
 function renderGrid() {
     const grid = document.getElementById('dashboard-grid');
     grid.innerHTML = '';
 
     userItems.forEach(item => {
-        const itemDiv = document.createElement('div');
+        const isFolder = item.type === 'folder';
 
-        if (item.type === 'folder') {
-            itemDiv.className = 'grid-item item-folder';
-            itemDiv.onclick = () => enterFolder(item.id, item.name);
-            itemDiv.innerHTML = `
-                <button class="delete-btn" data-id="${item.id}" data-name="${item.name}">✖</button>
-                <div class="item-icon">📁</div>
-                <div class="item-title">${item.name}</div>
-            `;
-        } else {
-            itemDiv.className = 'grid-item item-deck';
-            itemDiv.onclick = () => window.location.href = 'import.html?deckId=' + item.id;
-            itemDiv.innerHTML = `
-                <button class="delete-btn" data-id="${item.id}" data-name="${item.name}">✖</button>
-                <div class="item-icon">📇</div>
-                <div class="item-title">${item.name}</div>
-            `;
-        }
+        const itemDiv = document.createElement('div');
+        itemDiv.className = isFolder ? 'grid-item item-folder' : 'grid-item item-deck';
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.dataset.id = item.id;
+        deleteBtn.dataset.name = item.name;
+        deleteBtn.textContent = '✖';
+
+        const iconBadge = document.createElement('div');
+        iconBadge.className = 'item-icon-badge';
+        iconBadge.textContent = isFolder ? '📁' : '📇';
+
+        const content = document.createElement('div');
+        content.className = 'item-content';
+
+        const typeLabel = document.createElement('span');
+        typeLabel.className = 'item-type-label';
+        typeLabel.textContent = isFolder ? 'Folder' : 'Talia fiszek';
+
+        const title = document.createElement('div');
+        title.className = 'item-title';
+        title.textContent = item.name;
+
+        content.appendChild(typeLabel);
+        content.appendChild(title);
+
+        const dateLabel = document.createElement('span');
+        dateLabel.className = 'item-date';
+        dateLabel.textContent = formatItemDate(item.createdAt);
+
+        itemDiv.appendChild(deleteBtn);
+        itemDiv.appendChild(iconBadge);
+        itemDiv.appendChild(content);
+        itemDiv.appendChild(dateLabel);
+
+        // Klik na kartę nawiguje, ale klik na "✖" nie powinien — usuwanie
+        // obsługuje osobny, delegowany listener na #dashboard-grid (patrz init()).
+        itemDiv.addEventListener('click', (e) => {
+            if (e.target.closest('.delete-btn')) return;
+            if (isFolder) {
+                enterFolder(item.id, item.name);
+            } else {
+                window.location.href = 'import.html?deckId=' + item.id;
+            }
+        });
+
         grid.appendChild(itemDiv);
     });
 }

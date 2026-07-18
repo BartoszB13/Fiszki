@@ -29,7 +29,7 @@ router.post('/get', async (req, res) => {
     const items = await prisma.item.findMany({
       where: { userId, parentId },
       orderBy: [{ type: 'desc' }, { createdAt: 'asc' }],
-      select: { id: true, type: true, name: true },
+      select: { id: true, type: true, name: true, createdAt: true },
     });
 
     return res.json({ success: true, items });

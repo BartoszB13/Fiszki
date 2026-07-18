@@ -94,11 +94,62 @@
             background-color: #ffe6e6;
         }
 
-        .hero { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 60px 20px; flex-grow: 1; }
+        .hero { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 60px 20px; flex-grow: 0; }
         h1 { font-size: 2.5rem; margin-bottom: 10px; line-height: 1.2; }
         h1 span { color: var(--primary); }
 
         .hidden { display: none !important; }
+
+   
+        
+        .hero > * { position: relative; z-index: 1; }
+
+        .how-it-works { position: relative; overflow: hidden; padding: 70px 20px; background: var(--white); }
+        .how-it-works > * { position: relative; z-index: 1; }
+        .how-it-works-inner { max-width: 1080px; margin: 0 auto; }
+
+        .hiw-intro { text-align: center; max-width: 640px; margin: 0 auto 45px; }
+        .hiw-eyebrow { display: inline-block; font-size: 0.75rem; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase; color: var(--primary); background: rgba(74, 144, 226, 0.1); padding: 5px 14px; border-radius: 20px; margin-bottom: 14px; }
+        .how-it-works h2 { font-size: 2rem; margin: 0 0 12px; }
+        .how-it-works .hiw-intro p { color: #555; font-size: 1rem; line-height: 1.6; margin: 0; }
+
+        /* Static flashcard mock-up: reuses the same stacked-card language as the deck grid elsewhere in the app */
+        .flashcard-demo {
+            width: 220px; height: 130px; margin: 0 auto 50px; position: relative;
+        }
+        .demo-card {
+            position: absolute; inset: 0; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 1.5rem; user-select: none;
+        }
+        .demo-card-back {
+            background: var(--light); border: 2px solid var(--border); color: #9AA5B1;
+            transform: rotate(6deg) translate(10px, 6px);
+        }
+        .demo-card-front {
+            background: var(--white); border: 2px solid var(--primary); color: var(--dark);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+        }
+        .demo-card-front .demo-tag {
+            position: absolute; top: 10px; left: 14px; font-size: 0.6875rem; font-weight: bold;
+            letter-spacing: 0.5px; text-transform: uppercase; color: var(--primary); opacity: 0.7;
+        }
+        .demo-card-back .demo-tag {
+            position: absolute; top: 10px; left: 14px; font-size: 0.6875rem; font-weight: bold;
+            letter-spacing: 0.5px; text-transform: uppercase; color: #9AA5B1;
+        }
+
+        .steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+        .step {
+            background: var(--white); border: 1px solid var(--border); border-radius: 12px;
+            padding: 26px 22px; text-align: left; transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .step:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.06); }
+        .step-icon { font-size: 1.75rem; margin-bottom: 12px; }
+        .step-num { font-size: 0.75rem; font-weight: bold; color: var(--primary); letter-spacing: 1px; margin-bottom: 4px; }
+        .step h3 { font-size: 1.0625rem; margin: 0 0 8px; }
+        .step p { font-size: 0.9rem; color: #666; line-height: 1.55; margin: 0; }
+
+        footer { background-color: var(--dark-blue); color: rgba(255, 255, 255, 0.8); text-align: center; padding: 20px; font-size: 0.875rem; margin-top: auto; }
 
         /* ===== Hamburger - widoczny tylko poniżej 768px ===== */
         .hamburger-btn {
@@ -183,6 +234,12 @@
             .hero p { font-size: 0.9rem; }
             .btn { font-size: 0.9rem; padding: 10px 18px; }
             #about { padding: 40px 16px !important; }
+
+            .how-it-works { padding: 50px 16px; }
+            .how-it-works h2 { font-size: 1.6rem; }
+            .flashcard-demo { width: 180px; height: 108px; margin-bottom: 40px; }
+            .demo-card { font-size: 1.2rem; }
+            .steps-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -196,6 +253,7 @@
         </button>
 
         <div class="header-buttons" id="header-buttons">
+            <a href="#how-it-works" class="btn-text">Jak to działa</a>
             <a href="#about" class="btn-text">O Nas</a>
             <button id="btn-create" class="btn-text">Twórz</button>
 
@@ -219,11 +277,57 @@
             </div>
         </section>
 
+        <section id="how-it-works" class="how-it-works">
+            <div class="how-it-works-inner">
+                <div class="hiw-intro">
+                    <span class="hiw-eyebrow">Czym są fiszki?</span>
+                    <h2>Dwustronna karta, jeden nawyk</h2>
+                    <p>Fiszka to prosta karta z dwiema stronami: słówkiem po jednej i tłumaczeniem po drugiej. Widzisz słowo, próbujesz sobie przypomnieć znaczenie, sprawdzasz się — i wracasz do tych, które sprawiły trudność.</p>
+                </div>
+
+                <div class="flashcard-demo" aria-hidden="true">
+                    <div class="demo-card demo-card-back">
+                        <span class="demo-tag">Tłumaczenie</span>
+                        Pies
+                    </div>
+                    <div class="demo-card demo-card-front">
+                        <span class="demo-tag">Słówko</span>
+                        Dog
+                    </div>
+                </div>
+
+                <div class="steps-grid">
+                    <div class="step">
+                        <div class="step-icon">📁</div>
+                        <div class="step-num">KROK 1</div>
+                        <h3>Twórz talie</h3>
+                        <p>Organizuj słownictwo w foldery i talie — dokładnie tak, jak w prawdziwym segregatorze na fiszki.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-icon">📷</div>
+                        <div class="step-num">KROK 2</div>
+                        <h3>Dodawaj słówka</h3>
+                        <p>Wpisuj ręcznie z automatycznym tłumaczeniem albo zeskanuj stronę podręcznika — resztę zrobi AI.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-icon">🎓</div>
+                        <div class="step-num">KROK 3</div>
+                        <h3>Ucz się fiszkami</h3>
+                        <p>Przechodź przez talię, oceniaj swoją odpowiedź i wracaj do błędów, aż zostaną w pamięci na dobre.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section id="about" style="padding: 60px 20px; text-align: center; background: #fff;">
             <h2>O Nas</h2>
             <p style="max-width: 600px; margin: 0 auto; color: #555;">Stawiamy na czysty minimalizm, brak rozpraszaczy oraz maksymalną wydajność na każdym smartfonie.</p>
         </section>
     </main>
+
+    <footer>
+        <p>&copy; 2026 Fiszki.io. Wszelkie prawa zastrzeżone.</p>
+    </footer>
 
     <script src="js/api-client.js"></script>
     <script src="js/index.js"></script>
