@@ -90,6 +90,26 @@
         .item-title { font-size: 1rem; font-weight: bold; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         .item-date { position: absolute; bottom: 10px; right: 16px; font-size: 0.6875rem; font-weight: 600; color: #9AA5B1; }
+        .grid-item { cursor: grab; }
+        .grid-item.is-dragging-source { opacity: 0.35; }
+
+        .item-folder.drag-over {
+            border-color: var(--primary);
+            background-color: rgba(74, 144, 226, 0.06);
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.35), 0 10px 22px rgba(0,0,0,0.08);
+            transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .drag-ghost {
+            position: fixed;
+            top: 0; left: 0;
+            z-index: 5000;
+            pointer-events: none;
+            opacity: 0.92;
+            transform: rotate(-2deg) scale(1.03);
+            box-shadow: 0 18px 30px rgba(0,0,0,0.22);
+        }
+        .drag-ghost .delete-btn { display: none !important; }
 
 
 

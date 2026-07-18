@@ -12,6 +12,26 @@ function toIntOrNull(value) {
   const n = Number(value);
   return Number.isInteger(n) ? n : null;
 }
+/**
+ * Sprawdza, czy `potentialAncestorId` znajduje się wewnątrz poddrzewa
+ * `itemId` (czyli czy jest jego potomkiem). Używane przy przenoszeniu
+ * folderu — bez tego dałoby się przenieść folder do jego własnego
+ * podfolderu, co złamałoby strukturę drzewa (i mogłoby dać nieskończoną
+ * pętlę przy nawigacji/kasowaniu kaskadowym).
+ */
+async function isDescendant(userId, itemId, potentialAncestorId) {
+  let currentId = potentialAncestorId;
+  while (currentId !== null) {
+    if (currentId === itemId) return true;
+    const node = await prisma.item.findFirst({
+      where: { id: currentId, userId },
+      select: { parentId: true },
+    });
+    if (!node) break;
+    currentId = node.parentId;
+  }
+  return false;
+}
 
 /**
  * POST /api/items/get
@@ -108,5 +128,60 @@ router.post('/delete', async (req, res) => {
     return res.status(500).json({ success: false, message: 'Błąd zapytania do bazy danych.' });
   }
 });
+
+/**
+ * POST /api/items/move
+ * body: { itemId, targetFolderId }  — targetFolderId = null oznacza katalog główny
+ *
+ * Włączane przez "przytrzymaj i przeciągnij" na Tworzenie.html.
+ */
+router.post('/move', async (req, res) => {
+  try {
+    const userId = Number(req.user.id);
+    const itemId = toIntOrNull(req.body.itemId);
+    const targetFolderId = toIntOrNull(req.body.targetFolderId);
+
+    if (itemId === null) {
+      return res.status(400).json({ success: false, message: 'Brakujące dane.' });
+    }
+
+    // Własność przenoszonego elementu — bez tego user mógłby przenosić cudze zasoby (IDOR).
+    const item = await prisma.item.findFirst({ where: { id: itemId, userId } });
+    if (!item) {
+      return res.status(404).json({ success: false, message: 'Element nie istnieje.' });
+    }
+
+    if (targetFolderId !== null) {
+      if (targetFolderId === itemId) {
+        return res.status(400).json({ success: false, message: 'Nie można przenieść elementu do samego siebie.' });
+      }
+
+      const targetFolder = await prisma.item.findFirst({
+        where: { id: targetFolderId, userId, type: 'folder' },
+      });
+      if (!targetFolder) {
+        return res.status(404).json({ success: false, message: 'Folder docelowy nie istnieje.' });
+      }
+
+      if (item.type === 'folder') {
+        const wouldCreateCycle = await isDescendant(userId, itemId, targetFolderId);
+        if (wouldCreateCycle) {
+          return res.status(400).json({ success: false, message: 'Nie można przenieść folderu do jego własnego podfolderu.' });
+        }
+      }
+    }
+
+    if (item.parentId === targetFolderId) {
+      return res.json({ success: true }); // już tam jest — nic do zrobienia
+    }
+
+    await prisma.item.update({ where: { id: itemId }, data: { parentId: targetFolderId } });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Błąd przenoszenia elementu:', err);
+    return res.status(500).json({ success: false, message: 'Błąd zapisu w bazie danych.' });
+  }
+});
+
 
 module.exports = router;

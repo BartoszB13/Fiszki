@@ -110,6 +110,7 @@ function renderGrid() {
 
         const itemDiv = document.createElement('div');
         itemDiv.className = isFolder ? 'grid-item item-folder' : 'grid-item item-deck';
+        itemDiv.dataset.id = item.id;
 
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'delete-btn';
@@ -144,20 +145,172 @@ function renderGrid() {
         itemDiv.appendChild(content);
         itemDiv.appendChild(dateLabel);
 
-        // Klik na kartę nawiguje, ale klik na "✖" nie powinien — usuwanie
-        // obsługuje osobny, delegowany listener na #dashboard-grid (patrz init()).
-        itemDiv.addEventListener('click', (e) => {
-            if (e.target.closest('.delete-btn')) return;
-            if (isFolder) {
-                enterFolder(item.id, item.name);
-            } else {
-                window.location.href = 'import.html?deckId=' + item.id;
-            }
-        });
+        attachDragHandlers(itemDiv, item); // dokleja i nawigację (klik), i przeciąganie
 
         grid.appendChild(itemDiv);
     });
 }
+
+// ===== Drag & drop ("przytrzymaj i przeciągnij") — przenoszenie talii/folderów =====
+// Oparte na Pointer Events (nie HTML5 Drag&Drop), bo natywne DnD słabo
+// współpracuje z ekranami dotykowymi. Wymaga krótkiego przytrzymania
+// (LONG_PRESS_MS), żeby zwykłe stuknięcie dalej nawigowało jak wcześniej,
+// a przypadkowe muśnięcie przy scrollowaniu nie uruchamiało przeciągania.
+const LONG_PRESS_MS = 350;
+const MOVE_CANCEL_PX = 10;
+
+let pressTimer = null;
+let pressStartPos = null;
+let pendingPress = null;
+let dragState = null;
+
+function clearPendingPress() {
+    if (pressTimer) clearTimeout(pressTimer);
+    pressTimer = null;
+    pendingPress = null;
+    pressStartPos = null;
+}
+
+function attachDragHandlers(itemDiv, item) {
+    itemDiv.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('.delete-btn')) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+        pressStartPos = { x: e.clientX, y: e.clientY };
+        pendingPress = { item, itemDiv };
+        pressTimer = setTimeout(() => {
+            if (pendingPress) startDrag(pendingPress.item, pendingPress.itemDiv, pressStartPos);
+        }, LONG_PRESS_MS);
+    });
+
+    // Ruch przed upłynięciem czasu przytrzymania = user chce scrollować/kliknąć,
+    // a nie przeciągać -> anulujemy oczekujące przeciąganie.
+    itemDiv.addEventListener('pointermove', (e) => {
+        if (!pressStartPos || dragState) return;
+        const dx = e.clientX - pressStartPos.x;
+        const dy = e.clientY - pressStartPos.y;
+        if (Math.hypot(dx, dy) > MOVE_CANCEL_PX) clearPendingPress();
+    });
+
+    itemDiv.addEventListener('pointerup', clearPendingPress);
+    itemDiv.addEventListener('pointercancel', clearPendingPress);
+
+    itemDiv.addEventListener('click', (e) => {
+        if (itemDiv._suppressNextClick) {
+            itemDiv._suppressNextClick = false;
+            return;
+        }
+        if (e.target.closest('.delete-btn')) return;
+        if (item.type === 'folder') {
+            enterFolder(item.id, item.name);
+        } else {
+            window.location.href = 'import.html?deckId=' + item.id;
+        }
+    });
+}
+
+function startDrag(item, itemDiv, startPos) {
+    pendingPress = null;
+    pressTimer = null;
+
+    const rect = itemDiv.getBoundingClientRect();
+    const ghost = itemDiv.cloneNode(true);
+    ghost.classList.add('drag-ghost');
+    ghost.style.width = rect.width + 'px';
+    ghost.querySelectorAll('.delete-btn').forEach((btn) => btn.remove());
+    document.body.appendChild(ghost);
+
+    itemDiv.classList.add('is-dragging-source');
+    document.body.style.touchAction = 'none';
+    document.body.style.userSelect = 'none';
+
+    dragState = {
+        item,
+        itemDiv,
+        ghost,
+        offsetX: startPos.x - rect.left,
+        offsetY: startPos.y - rect.top,
+        currentDropTarget: null,
+    };
+
+    positionGhost(startPos.x, startPos.y);
+
+    document.addEventListener('pointermove', onDragMove, { passive: false });
+    document.addEventListener('pointerup', onDragEnd);
+
+    if (navigator.vibrate) navigator.vibrate(15); // subtelny feedback na telefonie, jeśli dostępny
+}
+
+function positionGhost(x, y) {
+    if (!dragState) return;
+    dragState.ghost.style.left = `${x - dragState.offsetX}px`;
+    dragState.ghost.style.top = `${y - dragState.offsetY}px`;
+}
+
+function onDragMove(e) {
+    if (!dragState) return;
+    e.preventDefault(); // blokuje scroll strony w trakcie aktywnego przeciągania
+    positionGhost(e.clientX, e.clientY);
+
+    dragState.ghost.style.visibility = 'hidden';
+    const elUnder = document.elementFromPoint(e.clientX, e.clientY);
+    dragState.ghost.style.visibility = 'visible';
+
+    // Tylko foldery są prawidłowym celem — talia nie może zawierać kolejnych elementów.
+    const folderTarget = elUnder ? elUnder.closest('.grid-item.item-folder') : null;
+    const validTarget = folderTarget && folderTarget !== dragState.itemDiv ? folderTarget : null;
+
+    if (dragState.currentDropTarget && dragState.currentDropTarget !== validTarget) {
+        dragState.currentDropTarget.classList.remove('drag-over');
+    }
+    if (validTarget) validTarget.classList.add('drag-over');
+    dragState.currentDropTarget = validTarget;
+}
+
+async function onDragEnd() {
+    document.removeEventListener('pointermove', onDragMove);
+    document.removeEventListener('pointerup', onDragEnd);
+
+    if (!dragState) return;
+
+    const { item, itemDiv, ghost, currentDropTarget } = dragState;
+    itemDiv.classList.remove('is-dragging-source');
+    if (currentDropTarget) currentDropTarget.classList.remove('drag-over');
+    ghost.remove();
+    document.body.style.touchAction = '';
+    document.body.style.userSelect = '';
+
+    // Blokuje "click", który przeglądarka wyemituje zaraz po pointerup,
+    // gdyby zwolnienie nastąpiło dokładnie nad kartą źródłową.
+    itemDiv._suppressNextClick = true;
+
+    const targetFolderId = currentDropTarget ? Number(currentDropTarget.dataset.id) : null;
+    dragState = null;
+
+    if (!targetFolderId) return; // upuszczone poza folderem -> anuluj
+
+    await moveItemToFolder(item.id, targetFolderId);
+}
+
+async function moveItemToFolder(itemId, targetFolderId) {
+    try {
+        const response = await FiszkiAPI.apiFetch('/items/move', {
+            method: 'POST',
+            body: JSON.stringify({ itemId, targetFolderId }),
+        });
+        const result = await response.json();
+        if (result.success) {
+            fetchItemsFromDB(); // odświeża widok — przeniesiony element znika z bieżącej listy
+        } else {
+            alert('Nie udało się przenieść elementu: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Błąd przenoszenia elementu:', error);
+        alert('Nie udało się połączyć z serwerem, aby przenieść element.');
+    }
+}
+
+
 
 (async function init() {
     // Pierwsza rzecz na stronie: próba odświeżenia sesji z HttpOnly
