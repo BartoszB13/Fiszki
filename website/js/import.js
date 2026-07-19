@@ -5,18 +5,110 @@ const deckId = urlParams.get('deckId');
 const wordsListContainer = document.getElementById('words-list');
 const wordCounter = document.getElementById('word-counter');
 const inputBase = document.getElementById('input-base');
+const inputTranslation = document.getElementById('input-translation');
 const btnSubmit = document.getElementById('btn-submit');
-const foreignLangSelect = document.getElementById('foreign-lang');
+const btnAutoTranslate = document.getElementById('btn-auto-translate');
+const translationHint = document.getElementById('translation-hint');
 
 inputBase.addEventListener('input', () => {
     document.getElementById('base-counter').innerText = inputBase.value.length;
 });
 
+// Trzymamy ostatnią automatycznie wykrytą sugestię osobno od realnej
+// wartości inputa - użytkownik może ją zaakceptować (przycisk/submit)
+// albo ją zignorować i wpisać własne tłumaczenie ręcznie.
+let currentSuggestion = null;
+let debounceTimer = null;
+
+function showHint(text, isError = false) {
+    translationHint.innerText = text;
+    translationHint.style.color = isError ? 'var(--danger)' : '#94A3B8';
+    translationHint.classList.remove('hidden');
+}
+
+function clearHint() {
+    translationHint.classList.add('hidden');
+    translationHint.innerText = '';
+}
+
+/**
+ * Wywołuje MyMemory z langpair="autodetect|pl" - MyMemory samo rozpoznaje
+ * język źródłowy, więc użytkownik nie musi go wybierać z listy.
+ * Zwraca string tłumaczenia albo null, jeśli się nie udało.
+ */
+async function detectAndTranslate(word) {
+    const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=autodetect|pl`);
+    const data = await res.json();
+    if (data && data.responseData && data.responseData.translatedText) {
+        return data.responseData.translatedText.toLowerCase();
+    }
+    return null;
+}
+
+// --- SUGESTIA "OPACITY TEXT" W TLE (placeholder) ---
+// Po pauzie w pisaniu, jeśli pole tłumaczenia jest wciąż puste, pobieramy
+// sugestię i wstawiamy ją jako placeholder (naturalnie wyszarzony/przezroczysty
+// tekst w polu) - widoczna, ale nie nadpisuje tego, co user ewentualnie zacznie
+// pisać. Jeśli user nic nie wpisze i wyśle formularz, użyjemy tej sugestii
+// automatycznie (patrz submit handler niżej).
+inputBase.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    currentSuggestion = null;
+
+    if (inputTranslation.value.trim() !== '') return; // user już pisze własne tłumaczenie - nie przeszkadzamy
+
+    const word = inputBase.value.trim();
+    if (word.length < 2) {
+        inputTranslation.placeholder = 'Tłumaczenie pojawi się tu automatycznie w miarę pisania...';
+        clearHint();
+        return;
+    }
+
+    debounceTimer = setTimeout(async () => {
+        try {
+            const suggestion = await detectAndTranslate(word);
+            if (suggestion && inputTranslation.value.trim() === '') {
+                currentSuggestion = suggestion;
+                inputTranslation.placeholder = suggestion;
+                showHint('Sugestia gotowa - wpisz własne tłumaczenie albo zostaw puste, aby jej użyć.');
+            }
+        } catch (err) {
+            console.error('Błąd auto-sugestii tłumaczenia:', err);
+        }
+    }, 700);
+});
+
+// --- PRZYCISK "🪄 Auto": wymusza detekcję+tłumaczenie i wstawia je NAPRAWDĘ do pola ---
+btnAutoTranslate.addEventListener('click', async () => {
+    const word = inputBase.value.trim();
+    if (!word) {
+        showHint('Najpierw wpisz słowo.', true);
+        return;
+    }
+
+    btnAutoTranslate.disabled = true;
+    btnAutoTranslate.innerText = '⏳';
+    clearHint();
+
+    try {
+        const suggestion = await detectAndTranslate(word);
+        if (suggestion) {
+            inputTranslation.value = suggestion;
+            currentSuggestion = null; // wpisane na sztywno, nie jest już "tylko sugestią"
+            showHint('Przetłumaczono automatycznie - możesz poprawić ręcznie.');
+        } else {
+            showHint('Nie udało się rozpoznać języka / przetłumaczyć. Wpisz tłumaczenie ręcznie.', true);
+        }
+    } catch (err) {
+        console.error('Błąd auto-tłumaczenia:', err);
+        showHint('Błąd połączenia z tłumaczem. Wpisz tłumaczenie ręcznie.', true);
+    } finally {
+        btnAutoTranslate.disabled = false;
+        btnAutoTranslate.innerText = '🪄 Auto';
+    }
+});
+
 // --- ZAPIS SŁÓWKA DO BAZY ---
-// Inwariant obowiązujący w całej aplikacji: base_word = słowo OBCE,
-// translation = jego polski odpowiednik. Dzięki temu nauka.js zawsze
-// wyświetla to samo pole jako pierwsze (do odgadnięcia) i to samo jako
-// odkrywane tłumaczenie, niezależnie od wybranego języka obcego.
 async function saveWordToDatabase(baseWord, translatedWord) {
     if (!deckId) {
         console.error('Błąd: Brak deckId w adresie URL.');
@@ -87,37 +179,37 @@ function renderWords() {
 
 document.getElementById('add-word-form').addEventListener('submit', async function (e) {
     e.preventDefault();
-    const query = inputBase.value.trim();
-    if (!query) return;
+    const baseWord = inputBase.value.trim();
+    if (!baseWord) return;
 
-    // Zawsze tłumaczymy Z wybranego języka obcego NA polski (|pl) —
-    // kierunek nie jest już wyborem użytkownika.
-    const langPair = `${foreignLangSelect.value}|pl`;
+    // Priorytet: to, co user faktycznie wpisał ręcznie -> jeśli puste,
+    // spadamy na ostatnią automatyczną sugestię (ta trzymana w placeholderze) ->
+    // jeśli i tej brak, prosimy o ręczne tłumaczenie zamiast zgadywać.
+    let translation = inputTranslation.value.trim();
+    if (!translation && currentSuggestion) {
+        translation = currentSuggestion;
+    }
+    if (!translation) {
+        showHint('Podaj tłumaczenie ręcznie albo poczekaj na automatyczną sugestię / użyj przycisku 🪄 Auto.', true);
+        return;
+    }
 
     btnSubmit.disabled = true;
-    btnSubmit.innerText = '⏳ Tłumaczę...';
+    btnSubmit.innerText = '⏳ Zapisywanie...';
 
     try {
-        const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(query)}&langpair=${langPair}`);
-        const data = await res.json();
-
-        let translatedText = query;
-        if (data && data.responseData && data.responseData.translatedText) {
-            translatedText = data.responseData.translatedText;
-        }
-
-        // query = słowo obce (to, co user wpisał) -> base
-        // translatedText = polski odpowiednik -> translation
-        await saveWordToDatabase(query, translatedText.toLowerCase());
+        await saveWordToDatabase(baseWord, translation);
 
         inputBase.value = '';
+        inputTranslation.value = '';
+        inputTranslation.placeholder = 'Tłumaczenie pojawi się tu automatycznie w miarę pisania...';
+        currentSuggestion = null;
+        clearHint();
         document.getElementById('base-counter').innerText = '0';
         inputBase.focus();
-    } catch (err) {
-        alert('Błąd połączenia z tłumaczem MyMemory.');
     } finally {
         btnSubmit.disabled = false;
-        btnSubmit.innerText = '➕ Przetłumacz i dodaj';
+        btnSubmit.innerText = '➕ Dodaj słówko';
     }
 });
 
@@ -143,6 +235,8 @@ async function removeWord(id) {
 }
 
 // --- SKANOWANIE ZDJĘĆ PRZEZ GEMINI ---
+// Gemini sam rozpoznaje język(i) na stronie i sam tłumaczy - żadna
+// dodatkowa informacja o języku nie jest już wysyłana z frontendu.
 const btnScanPhoto = document.getElementById('btn-scan-photo');
 const imageUpload = document.getElementById('image-upload');
 const scanLabel = document.getElementById('scan-label');
@@ -164,10 +258,7 @@ imageUpload.addEventListener('change', function () {
         try {
             const response = await FiszkiAPI.apiFetch('/scan-ai', {
                 method: 'POST',
-                body: JSON.stringify({
-                    image: base64Image,
-                    foreignLang: foreignLangSelect.value, // target jest zawsze 'pl' po stronie backendu
-                }),
+                body: JSON.stringify({ image: base64Image }),
             });
             const result = await response.json();
 

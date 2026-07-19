@@ -66,6 +66,18 @@
         .form-group input:focus { border-color: var(--primary); }
         .char-counter { font-size: 0.75rem; color: #94A3B8; text-align: right; margin-top: 4px; }
 
+
+        .label-with-action { display: flex !important; align-items: center; justify-content: space-between; gap: 8px; }
+        .btn-auto-translate {
+            background: var(--light); border: 1px solid var(--border); color: var(--primary);
+            border-radius: 6px; padding: 3px 10px; font-size: 0.75rem; font-weight: bold;
+            cursor: pointer; touch-action: manipulation; white-space: nowrap;
+        }
+        .btn-auto-translate:hover { background: var(--primary); color: white; }
+        .btn-auto-translate:disabled { opacity: 0.5; cursor: wait; }
+        .translation-hint { font-size: 0.75rem; color: #94A3B8; margin-top: 4px; text-align: left; }
+        .translation-hint.hidden { display: none; }
+
         .btn-submit { background-color: var(--success); color: white; border: none; border-radius: 8px; padding: 14px; font-size: 1rem; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; touch-action: manipulation; }
         .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3); }
         .btn-submit:disabled { background-color: #95a5a6; cursor: wait; transform: none; box-shadow: none; }
@@ -134,32 +146,28 @@
                 <div class="photo-mock-zone" id="btn-scan-photo">
                     <div style="font-size: 28px; margin-bottom: 5px;">📷</div>
                     <strong style="display: block; font-size: 15px; color: var(--dark);" id="scan-label">Skanuj ze zdjęcia (AI)</strong>
-                    <span style="font-size: 13px; color: #64748B;">Automatycznie wyodrębnia słówka, <br>Z 4 dostępnych języków ( en/es/it/ge ) na Polski!!!</br></span>
+                    <span style="font-size: 13px; color: #64748B;">,<br>Automatycznie tłumaczy słówka i idiomy</br></span>
                 </div>
 
                 <div class="divider">SZYBKIE DODAWANIE</div>
 
-                
-                <div class="lang-row">
-                    <div class="lang-col" style="flex: 2;">
-                        <label>Język obcy:</label>
-                        <select id="foreign-lang">
-                            <option value="en" selected>Angielski (en)</option>
-                            <option value="de">Niemiecki (de)</option>
-                            <option value="es">Hiszpański (es)</option>
-                            <option value="it">Włoski (it)</option>
-                        </select>
-                    </div>
-                    <div style="align-self: center; padding: 0 6px 10px; color: #64748B; font-weight: bold; white-space: nowrap;">→ Polski (pl)</div>
-                </div>
                 <form id="add-word-form">
                     <div class="form-group">
-                        <label>Słówko</label>
-                        <input type="text" id="input-base" placeholder="Wpisz słowo i naciśnij Enter..." required autocomplete="off" maxlength="50">
+                        <label for="input-base">Słowo (dowolny język obcy)</label>
+                        <input type="text" id="input-base" placeholder="Wpisz słowo..." required autocomplete="off" spellcheck="true" maxlength="50">
                         <div class="char-counter"><span id="base-counter">0</span>/50</div>
                     </div>
 
-                    <button type="submit" class="btn-submit" id="btn-submit">➕ Przetłumacz i dodaj</button>
+                    <div class="form-group">
+                        <label class="label-with-action" for="input-translation">
+                            Tłumaczenie (polski)
+                            <button type="button" id="btn-auto-translate" class="btn-auto-translate" title="Wykryj język i przetłumacz automatycznie">🪄 Auto</button>
+                        </label>
+                        <input type="text" id="input-translation" placeholder="Tłumaczenie pojawi się tu automatycznie w miarę pisania..." autocomplete="off" spellcheck="true" maxlength="200">
+                        <div id="translation-hint" class="translation-hint hidden"></div>
+                    </div>
+
+                    <button type="submit" class="btn-submit" id="btn-submit">➕ Dodaj słówko</button>
                 </form>
 
                 <button type="button" class="btn-submit" id="btn-start-learning" style="background-color: var(--primary); margin-top: 15px;">

@@ -4,49 +4,38 @@ const { authenticate } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
+// Wywołania Gemini kosztują pieniądze i czas — endpoint musi być za autoryzacją,
+// inaczej dowolna osoba w internecie mogłaby generować koszty na Twoim koncie API.
 router.use(authenticate);
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Jedyne 4 języki OBCE wspierane w aplikacji (musi być zgodne z opcjami
-// <select id="foreign-lang"> w import.html). Polski nie jest tu wymieniony
-// celowo — to zawsze język DOCELOWY, nigdy wybierany przez użytkownika.
-// Whitelist zamiast przyjmowania dowolnego stringa od klienta — foreignLang
-// trafia bezpośrednio do promptu wysyłanego do Gemini, więc walidacja
-// tutaj to obrona przed prompt injection przez to pole.
-const SUPPORTED_FOREIGN_LANGS = {
-  en: 'angielskim',
-  de: 'niemieckim',
-  es: 'hiszpańskim',
-  it: 'włoskim',
-};
-
 /**
- * Prompt zawsze wymusza kierunek: słowo obce -> "base", polskie
- * tłumaczenie -> "translation". To ten sam inwariant, który obowiązuje
- * przy ręcznym dodawaniu słówek (import.js), więc dane z obu ścieżek
- * (AI scan i quick-add) są spójne i nauka.js wyświetla je identycznie.
+ * Gemini widzi CAŁĄ stronę na raz (nie pojedyncze słowo w oderwaniu od
+ * kontekstu, tak jak MyMemory) — dlatego to on, a nie MyMemory, tłumaczy
+ * w tej ścieżce. To pozwala:
+ * 1) samodzielnie rozpoznać język strony (brak selektora w UI),
+ * 2) użyć kontekstu (przykładowych zdań, tematu lekcji) do poprawnego
+ *    przetłumaczenia idiomów/zwrotów metaforycznych, których MyMemory
+ *    tłumaczy zwykle dosłownie słowo-po-słowie.
  */
-function buildPrompt(foreignLangCode) {
-  const foreignLangName = SUPPORTED_FOREIGN_LANGS[foreignLangCode];
+const PROMPT = `Jesteś ekspertem językowym i OCR. Przeanalizuj to zdjęcie strony z podręcznika do nauki języka obcego i wyciągnij z niego listę słówek oraz zwrotów. Zignoruj sposób wymowy (w ukośnikach np. /sʌmθɪŋ/), nawiasy z częściami mowy (np. (v), (n), (adj)), numery stron i polecenia do zadań.
 
-  return `Jesteś ekspertem językowym i OCR. Przeanalizuj to zdjęcie strony z podręcznika i wyciągnij z niego listę słówek. Zignoruj sposób wymowy (w ukośnikach np. /sʌmθɪŋ/), nawiasy z częściami mowy (np. (v), (n), (adj)), numery stron i polecenia do zadań. Wyciągnij słowo w języku ${foreignLangName} (pole "base") oraz jego polskie tłumaczenie (pole "translation"). Jeśli na zdjęciu występują inne języki niż ${foreignLangName} i polski, pomiń je.`;
-}
+Dla każdej pozycji zwróć:
+- "base": słowo lub wyrażenie DOKŁADNIE w takim języku, w jakim widnieje na zdjęciu (sam rozpoznaj język — może to być dowolny język, nie zakładaj z góry którego).
+- "translation": naturalne, poprawne polskie tłumaczenie.
+
+Jeśli natrafisz na idiom, kolokację lub wyrażenie o znaczeniu metaforycznym/przenośnym, NIE tłumacz go dosłownie słowo po słowie. Wykorzystaj kontekst całej widocznej strony (przykładowe zdania, temat lekcji, otaczający tekst), aby ustalić jego rzeczywiste, naturalne znaczenie w języku polskim — tak jak zrobiłby to native speaker, a nie tłumacz maszynowy pracujący na pojedynczych słowach w oderwaniu od kontekstu.`;
 
 /**
  * POST /api/scan-ai
- * body: { image, foreignLang }
+ * body: { image }  -- obraz w formacie data URL (base64)
  */
 router.post('/scan-ai', async (req, res) => {
   try {
-    const { image, foreignLang } = req.body;
-
+    const { image } = req.body;
     if (!image) {
       return res.status(400).json({ success: false, message: 'Brak obrazu.' });
-    }
-
-    if (!SUPPORTED_FOREIGN_LANGS[foreignLang]) {
-      return res.status(400).json({ success: false, message: 'Nieobsługiwany język obcy.' });
     }
 
     const match = image.match(/^data:(image\/\w+);base64,(.+)$/);
@@ -72,7 +61,7 @@ router.post('/scan-ai', async (req, res) => {
     });
 
     const result = await model.generateContent([
-      { text: buildPrompt(foreignLang) },
+      { text: PROMPT },
       { inlineData: { mimeType, data: rawBase64 } },
     ]);
 
