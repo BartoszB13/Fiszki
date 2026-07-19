@@ -189,7 +189,11 @@ imageUpload.addEventListener('change', function () {
         try {
             const response = await FiszkiAPI.apiFetch('/scan-ai', {
                 method: 'POST',
-                body: JSON.stringify({ image: base64Image }),
+                body: JSON.stringify({
+                    image: base64Image,
+                    sourceLang: srcSelect.value,
+                    targetLang: tgtSelect.value,
+                }),
             });
             const result = await response.json();
 
@@ -219,6 +223,7 @@ imageUpload.addEventListener('change', function () {
     };
     reader.readAsDataURL(file);
 });
+
 
 document.getElementById('btn-start-learning').addEventListener('click', () => {
     window.location.href = 'nauka.html' + window.location.search;
