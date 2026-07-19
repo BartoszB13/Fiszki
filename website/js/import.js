@@ -80,8 +80,8 @@ function renderWords() {
         li.className = 'word-item';
         li.innerHTML = `
             <div>
-                <div class="word-base">${word.base}</div>
-                <div class="word-translation">${word.translation}</div>
+                <div class="word-base">${word.translation}</div>
+                <div class="word-translation">${word.base}</div>
             </div>
             <button class="btn-remove-word" data-id="${word.id}">✖</button>
         `;
