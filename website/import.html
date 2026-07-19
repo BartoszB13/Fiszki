@@ -134,38 +134,24 @@
                 <div class="photo-mock-zone" id="btn-scan-photo">
                     <div style="font-size: 28px; margin-bottom: 5px;">📷</div>
                     <strong style="display: block; font-size: 15px; color: var(--dark);" id="scan-label">Skanuj ze zdjęcia (AI)</strong>
-                    <span style="font-size: 13px; color: #64748B;">Automatycznie wyodrębnia słówka, <br>Z 5 dostępnych języków ( en/es/it/pl/ge )!!!</br></span>
+                    <span style="font-size: 13px; color: #64748B;">Automatycznie wyodrębnia słówka, <br>Z 4 dostępnych języków ( en/es/it/ge ) na Polski!!!</br></span>
                 </div>
 
                 <div class="divider">SZYBKIE DODAWANIE</div>
 
+                
                 <div class="lang-row">
-                    <div class="lang-col">
-                        <label>Wpisuję w:</label>
-                        <select id="source-lang">
-                            <option value="pl" selected>Polski (pl)</option>
-                            <option value="en">Angielski (en)</option>
+                    <div class="lang-col" style="flex: 2;">
+                        <label>Język obcy:</label>
+                        <select id="foreign-lang">
+                            <option value="en" selected>Angielski (en)</option>
                             <option value="de">Niemiecki (de)</option>
                             <option value="es">Hiszpański (es)</option>
                             <option value="it">Włoski (it)</option>
                         </select>
                     </div>
-
-                    <button type="button" class="btn-swap" id="btn-swap-langs" title="Odwróć języki">⇄</button>
-
-                    <div class="lang-col">
-                        <label>Tłumacz na:</label>
-                        <select id="target-lang">
-                            <option value="en" selected>Angielski (en)</option>
-                            <option value="pl">Polski (pl)</option>
-                            <option value="de">Niemiecki (de)</option>
-                            <option value="es">Hiszpański (es)</option>
-                            <option value="it">WŁoski (it)</option>
-                       
-                        </select>
-                    </div>
+                    <div style="align-self: center; padding: 0 6px 10px; color: #64748B; font-weight: bold; white-space: nowrap;">→ Polski (pl)</div>
                 </div>
-
                 <form id="add-word-form">
                     <div class="form-group">
                         <label>Słówko</label>

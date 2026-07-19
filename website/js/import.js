@@ -6,16 +6,17 @@ const wordsListContainer = document.getElementById('words-list');
 const wordCounter = document.getElementById('word-counter');
 const inputBase = document.getElementById('input-base');
 const btnSubmit = document.getElementById('btn-submit');
-const srcSelect = document.getElementById('source-lang');
-const tgtSelect = document.getElementById('target-lang');
+const foreignLangSelect = document.getElementById('foreign-lang');
 
-// Limit 50 znaków egzekwowany też po stronie backendu (400, jeśli
-// przekroczony) — to tylko wygoda UX, żeby user zobaczył to od razu.
 inputBase.addEventListener('input', () => {
     document.getElementById('base-counter').innerText = inputBase.value.length;
 });
 
 // --- ZAPIS SŁÓWKA DO BAZY ---
+// Inwariant obowiązujący w całej aplikacji: base_word = słowo OBCE,
+// translation = jego polski odpowiednik. Dzięki temu nauka.js zawsze
+// wyświetla to samo pole jako pierwsze (do odgadnięcia) i to samo jako
+// odkrywane tłumaczenie, niezależnie od wybranego języka obcego.
 async function saveWordToDatabase(baseWord, translatedWord) {
     if (!deckId) {
         console.error('Błąd: Brak deckId w adresie URL.');
@@ -38,8 +39,6 @@ async function saveWordToDatabase(baseWord, translatedWord) {
             wordsList.push({ id: data.id, base: baseWord, translation: translatedWord });
             renderWords();
         } else {
-            // Np. 400 z komunikatem o przekroczonym limicie znaków, albo
-            // 429 z rate-limitera przy zbyt szybkim dodawaniu.
             alert('Błąd zapisu: ' + data.message);
         }
     } catch (error) {
@@ -69,10 +68,6 @@ async function fetchWordsFromDatabase() {
     }
 }
 
-// Renderowanie przez createElement/textContent — NIE innerHTML.
-// word.base/word.translation to treść wpisana przez użytkownika (lub
-// zwrócona przez AI); backend je sanityzuje przed zapisem, ale tu
-// dodatkowo unikamy jakiejkolwiek interpretacji jako HTML (defense in depth).
 function renderWords() {
     wordsListContainer.innerHTML = '';
     wordsList.forEach(word => {
@@ -80,8 +75,8 @@ function renderWords() {
         li.className = 'word-item';
         li.innerHTML = `
             <div>
-                <div class="word-base">${word.translation}</div>
-                <div class="word-translation">${word.base}</div>
+                <div class="word-base">${word.base}</div>
+                <div class="word-translation">${word.translation}</div>
             </div>
             <button class="btn-remove-word" data-id="${word.id}">✖</button>
         `;
@@ -90,36 +85,14 @@ function renderWords() {
     wordCounter.innerText = wordsList.length;
 }
 
-// Zapobieganie dublowaniu (POL-POL) oraz zamianka
-let lastSrc = srcSelect.value;
-let lastTgt = tgtSelect.value;
-
-srcSelect.addEventListener('change', () => {
-    if (srcSelect.value === tgtSelect.value) tgtSelect.value = lastSrc;
-    lastSrc = srcSelect.value;
-    lastTgt = tgtSelect.value;
-});
-
-tgtSelect.addEventListener('change', () => {
-    if (tgtSelect.value === srcSelect.value) srcSelect.value = lastTgt;
-    lastSrc = srcSelect.value;
-    lastTgt = tgtSelect.value;
-});
-
-document.getElementById('btn-swap-langs').addEventListener('click', () => {
-    const temp = srcSelect.value;
-    srcSelect.value = tgtSelect.value;
-    tgtSelect.value = temp;
-    lastSrc = srcSelect.value;
-    lastTgt = tgtSelect.value;
-});
-
 document.getElementById('add-word-form').addEventListener('submit', async function (e) {
     e.preventDefault();
     const query = inputBase.value.trim();
     if (!query) return;
 
-    const langPair = `${srcSelect.value}|${tgtSelect.value}`;
+    // Zawsze tłumaczymy Z wybranego języka obcego NA polski (|pl) —
+    // kierunek nie jest już wyborem użytkownika.
+    const langPair = `${foreignLangSelect.value}|pl`;
 
     btnSubmit.disabled = true;
     btnSubmit.innerText = '⏳ Tłumaczę...';
@@ -133,6 +106,8 @@ document.getElementById('add-word-form').addEventListener('submit', async functi
             translatedText = data.responseData.translatedText;
         }
 
+        // query = słowo obce (to, co user wpisał) -> base
+        // translatedText = polski odpowiednik -> translation
         await saveWordToDatabase(query, translatedText.toLowerCase());
 
         inputBase.value = '';
@@ -191,8 +166,7 @@ imageUpload.addEventListener('change', function () {
                 method: 'POST',
                 body: JSON.stringify({
                     image: base64Image,
-                    sourceLang: srcSelect.value,
-                    targetLang: tgtSelect.value,
+                    foreignLang: foreignLangSelect.value, // target jest zawsze 'pl' po stronie backendu
                 }),
             });
             const result = await response.json();
@@ -224,7 +198,6 @@ imageUpload.addEventListener('change', function () {
     reader.readAsDataURL(file);
 });
 
-
 document.getElementById('btn-start-learning').addEventListener('click', () => {
     window.location.href = 'nauka.html' + window.location.search;
 });
@@ -242,13 +215,10 @@ document.getElementById('btn-start-learning').addEventListener('click', () => {
     }
 
     fetchWordsFromDatabase();
-document.getElementById('btn-start-learning').addEventListener('click', () => {
-    window.location.href = 'nauka.html' + window.location.search;
-});
 
-wordsListContainer.addEventListener('click', (e) => {
-    if (e.target.classList.contains('btn-remove-word')) {
-        removeWord(Number(e.target.dataset.id));
-    }
-});
+    wordsListContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('btn-remove-word')) {
+            removeWord(Number(e.target.dataset.id));
+        }
+    });
 })();
